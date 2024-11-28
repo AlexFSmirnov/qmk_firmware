@@ -699,7 +699,6 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
     }
 }
 
-
 bool rgb_matrix_indicators_kb(void)
 {
     if(!rgb_matrix_indicators_user()){

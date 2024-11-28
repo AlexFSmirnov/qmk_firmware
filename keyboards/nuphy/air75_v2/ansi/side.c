@@ -82,6 +82,8 @@ extern uint16_t        rf_link_show_time;
 extern bool            f_bat_hold;
 extern bool            f_sys_show;
 extern bool            f_sleep_show;
+extern uint8_t         host_mode;
+extern bool test_key_color;
 
 void side_ws2812_setleds(rgb_led_t *ledarray, uint16_t leds);
 void rgb_matrix_update_pwm_buffers(void);
@@ -853,6 +855,36 @@ void side_led_show(void) {
             side_breathe_mode_show();
             break;
         case SIDE_STATIC:
+            if (test_key_color) {
+                r_temp = 0xFF;
+                g_temp = 0x00;
+                b_temp = 0x00;
+                count_rgb_light(side_light_table[side_light]);
+                for (int i = 6; i < 12; i+=1) {
+                    if (i == 6) {
+                        side_rgb_set_color(i, r_temp >> 2, g_temp >> 2, b_temp >> 2);
+                    } else {
+                        side_rgb_set_color(i, 0x00 >> 2, 0x00 >> 2, 0x00 >> 2);
+                    }
+                }
+
+                break;
+            }
+            if (!test_key_color) {
+                r_temp = 0x00;
+                g_temp = 0x00;
+                b_temp = 0xFF;
+                count_rgb_light(side_light_table[side_light]);
+                for (int i = 6; i < 12; i+=1) {
+                    if (i == 11) {
+                        side_rgb_set_color(i, r_temp >> 2, g_temp >> 2, b_temp >> 2);
+                    } else {
+                        side_rgb_set_color(i, 0x00 >> 2, 0x00 >> 2, 0x00 >> 2);
+                    }
+                }
+                break;
+            }
+
             side_static_mode_show();
             break;
         case SIDE_OFF:
