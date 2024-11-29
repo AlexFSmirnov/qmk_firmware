@@ -82,9 +82,29 @@ bool TYPING_HEATMAP(effect_params_t* params) {
                 uint8_t val = g_rgb_frame_buffer[row][col];
                 if (!HAS_ANY_FLAGS(g_led_config.flags[g_led_config.matrix_co[row][col]], params->flags)) continue;
 
+                // Original section - fade from another hue back to the original color
                 HSV hsv = {170 - qsub8(val, 85), rgb_matrix_config.hsv.s, scale8((qadd8(170, val) - 170) * 3, rgb_matrix_config.hsv.v)};
                 RGB rgb = rgb_matrix_hsv_to_rgb(hsv);
                 rgb_matrix_set_color(g_led_config.matrix_co[row][col], rgb.r, rgb.g, rgb.b);
+
+                // Updated - fade from white back to the original colorq
+                // uint8_t white_weight = val; // Higher `val` means closer to white
+                // uint8_t base_weight = 255 - val; // Lower `val` means closer to base color
+                //
+                // // Base brightness from config
+                // uint8_t brightness = rgb_matrix_config.hsv.v;
+                //
+                // // Base color from rgb_matrix_config
+                // HSV base_hsv = rgb_matrix_config.hsv;
+                // RGB base_rgb = rgb_matrix_hsv_to_rgb(base_hsv);
+                //
+                // // Compute the blended color with brightness scaling
+                // uint8_t r = scale8(scale8(255, white_weight) + scale8(base_rgb.r, base_weight), brightness);
+                // uint8_t g = scale8(scale8(255, white_weight) + scale8(base_rgb.g, base_weight), brightness);
+                // uint8_t b = scale8(scale8(255, white_weight) + scale8(base_rgb.b, base_weight), brightness);
+                //
+                // // Apply the blended color to the key
+                // rgb_matrix_set_color(g_led_config.matrix_co[row][col], r, g, b);
 
                 if (decrease_heatmap_values) {
                     g_rgb_frame_buffer[row][col] = qsub8(val, 1);

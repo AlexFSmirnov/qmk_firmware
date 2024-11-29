@@ -40,5 +40,5 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #define EECONFIG_USER_DATA_SIZE             8
 
-#define RGB_MATRIX_DEFAULT_MODE             RGB_MATRIX_CYCLE_LEFT_RIGHT
+#define RGB_MATRIX_DEFAULT_MODE             RGB_MATRIX_SOLID_REACTIVE
 #define RGB_MATRIX_SLEEP
