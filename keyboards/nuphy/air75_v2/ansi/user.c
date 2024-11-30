@@ -2,6 +2,7 @@
 #include "ansi.h"
 #include "qmk-vim/src/vim.h"
 #include "qmk-vim/src/modes.h"
+/* #include "qmk-vim/src/actions.h" */
 
 bool test_key_color = 0;
 uint16_t test_index = 0;
@@ -13,6 +14,8 @@ bool vim_locked_disabled = false;
 void set_left_rgb(uint8_t r, uint8_t g, uint8_t b);
 void set_right_rgb(uint8_t r, uint8_t g, uint8_t b);
 uint8_t scale8(uint8_t value, uint8_t scale);
+/* bool process_normal_mode(uint16_t keycode, const keyrecord_t *record); */
+/* bool process_vim_action(uint16_t keycode, const keyrecord_t *record); */
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     if (!process_vim_mode(keycode, record)) {
@@ -59,15 +62,11 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 
 bool process_normal_mode_user(uint16_t keycode, keyrecord_t *record) {
     /* switch (keycode) { */
-    /*     case LSFT(KC_H): */
-    /*         if (record->event.pressed) { */
-    /*             process_record_user(LSFT(KC_6), record); */
-    /*         } */
+    /*     case LSFT(KC_H): // ^ */
+    /*         process_vim_action(KC_CIRC, record); */
     /*         return false; */
-    /*     case LSFT(KC_L): */
-    /*         if (record->event.pressed) { */
-    /*             process_record_user(LSFT(KC_4), record); */
-    /*         } */
+    /*     case LSFT(KC_L): // $ */
+    /*         process_vim_action(KC_DLR, record); */
     /*         return false; */
     /* } */
     return true;
@@ -134,7 +133,7 @@ void side_led_vim_mode(void) {
     HSV hsv = rgb_matrix_config.hsv;
     switch (get_vim_mode()) {
         case NORMAL_MODE:
-            hsv.h = 160;
+            hsv.h = 140;
             break;
         case INSERT_MODE:
             hsv.h = 100;
