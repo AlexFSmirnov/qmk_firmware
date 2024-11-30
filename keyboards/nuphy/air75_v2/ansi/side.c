@@ -87,6 +87,7 @@ extern bool test_key_color;
 
 void side_ws2812_setleds(rgb_led_t *ledarray, uint16_t leds);
 void rgb_matrix_update_pwm_buffers(void);
+bool side_led_show_user(void);
 
 /**
  * @brief  side leds set color vaule.
@@ -844,52 +845,24 @@ void side_led_show(void) {
     side_play_cnt += timer_elapsed32(side_play_timer);
     side_play_timer = timer_read32();
 
-    switch (side_mode) {
-        case SIDE_WAVE:
-            side_wave_mode_show();
-            break;
-        case SIDE_MIX:
-            side_spectrum_mode_show();
-            break;
-        case SIDE_BREATH:
-            side_breathe_mode_show();
-            break;
-        case SIDE_STATIC:
-            if (test_key_color) {
-                r_temp = 0xFF;
-                g_temp = 0x00;
-                b_temp = 0x00;
-                count_rgb_light(side_light_table[side_light]);
-                for (int i = 6; i < 12; i+=1) {
-                    if (i == 6) {
-                        side_rgb_set_color(i, r_temp >> 2, g_temp >> 2, b_temp >> 2);
-                    } else {
-                        side_rgb_set_color(i, 0x00 >> 2, 0x00 >> 2, 0x00 >> 2);
-                    }
-                }
-
+    if (side_led_show_user()) {
+        switch (side_mode) {
+            case SIDE_WAVE:
+                side_wave_mode_show();
                 break;
-            }
-            if (!test_key_color) {
-                r_temp = 0x00;
-                g_temp = 0x00;
-                b_temp = 0xFF;
-                count_rgb_light(side_light_table[side_light]);
-                for (int i = 6; i < 12; i+=1) {
-                    if (i == 11) {
-                        side_rgb_set_color(i, r_temp >> 2, g_temp >> 2, b_temp >> 2);
-                    } else {
-                        side_rgb_set_color(i, 0x00 >> 2, 0x00 >> 2, 0x00 >> 2);
-                    }
-                }
+            case SIDE_MIX:
+                side_spectrum_mode_show();
                 break;
-            }
-
-            side_static_mode_show();
-            break;
-        case SIDE_OFF:
-            side_off_mode_show();
-            break;
+            case SIDE_BREATH:
+                side_breathe_mode_show();
+                break;
+            case SIDE_STATIC:
+                side_static_mode_show();
+                break;
+            case SIDE_OFF:
+                side_off_mode_show();
+                break;
+        }
     }
 
     bat_led_show();

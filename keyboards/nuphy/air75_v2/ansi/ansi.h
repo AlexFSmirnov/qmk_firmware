@@ -46,7 +46,11 @@ enum custom_keycodes {
     BAT_SHOW,
     MAC_DND,
     BAT_NUM,
-    RGB_TEST
+    RGB_TEST,
+
+    VIM_HOLD,
+    VIM_TOGGLE,
+    VIM_LOCK,
 };
 
 typedef enum {
