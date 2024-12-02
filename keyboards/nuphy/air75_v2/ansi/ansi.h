@@ -131,13 +131,15 @@ typedef enum {
 #define HOST_BLE_TYPE           1
 #define HOST_RF_TYPE            2
 
-#define LINK_TIMEOUT            (100 * 120)
-#define SLEEP_TIME_DELAY        (100 * 360)
+#define LINK_TIMEOUT            (100 * 60 * 2) // 2 minutes
+#define SLEEP_TIME_DELAY        (100 * 60 * 60) // 1 hour
 #define POWER_DOWN_DELAY        (24)
 
 #define RF_LONG_PRESS_DELAY     30
 #define DEV_RESET_PRESS_DELAY   30
 #define RGB_TEST_PRESS_DELAY    30
+
+#define VIM_DOUBLE_J_DELAY      300
 
 typedef struct
 {

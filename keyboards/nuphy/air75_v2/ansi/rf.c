@@ -50,7 +50,7 @@ extern uint8_t         host_mode;
 extern uint8_t         rf_blink_cnt;
 extern uint16_t        rf_link_show_time;
 extern uint16_t        rf_linking_time;
-extern uint16_t        no_act_time;
+extern uint32_t        no_act_time;
 extern bool            f_send_channel;
 extern bool            f_dial_sw_init_ok;
 
@@ -516,7 +516,7 @@ void dev_sts_sync(void) {
                 link_state_temp   = RF_CONNECT;
                 rf_link_show_time = 0;
                 if (dev_info.link_mode == LINK_RF_24) {
-                    uart_send_cmd(CMD_SET_24G_NAME, 10, 30);   
+                    uart_send_cmd(CMD_SET_24G_NAME, 10, 30);
                 }
 
             }
@@ -544,22 +544,22 @@ void UART_Send_Bytes(uint8_t *Buffer, uint32_t Length) {
         {
             writePinLow(NRF_WAKEUP_PIN);
             wait_us(50);
-        
+
             uart_transmit(Buffer, Length);
-        
+
             wait_us(50 + Length * 32);
-            writePinHigh(NRF_WAKEUP_PIN);  
-        
-            wait_us(200);      
-        }        
+            writePinHigh(NRF_WAKEUP_PIN);
+
+            wait_us(200);
+        }
     } else {
             writePinLow(NRF_WAKEUP_PIN);
             wait_us(50);
-        
+
             uart_transmit(Buffer, Length);
-        
+
             wait_us(50 + Length * 32);
-            writePinHigh(NRF_WAKEUP_PIN);          
+            writePinHigh(NRF_WAKEUP_PIN);
     }
 }
 

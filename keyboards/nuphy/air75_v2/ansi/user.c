@@ -1,15 +1,11 @@
 #include "user.h"
 #include "ansi.h"
+#include "timer.h"
 #include "qmk-vim/src/vim.h"
 #include "qmk-vim/src/modes.h"
-/* #include "qmk-vim/src/actions.h" */
-
-bool test_key_color = 0;
-uint16_t test_index = 0;
-uint16_t test_row = 0;
-uint16_t test_col = 0;
 
 bool vim_locked_disabled = false;
+uint16_t vim_j_last_pressed = 0;
 
 void set_left_rgb(uint8_t r, uint8_t g, uint8_t b);
 void set_right_rgb(uint8_t r, uint8_t g, uint8_t b);
@@ -22,8 +18,8 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         return false;
     }
 
-    test_row = record->event.key.row;
-    test_col = record->event.key.col;
+    /* test_row = record->event.key.row; */
+    /* test_col = record->event.key.col; */
     switch (keycode) {
         case VIM_LOCK:
             if (record->event.pressed) {
@@ -52,23 +48,51 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             } else {
                 disable_vim_mode();
             }
+            break;
 
-            return false;
+        case KC_H:
+            if (record->event.pressed && (get_mods() & MOD_MASK_CTRL) && (get_mods() & MOD_MASK_GUI)) {
+                tap_code16(LCTL(LGUI(KC_LEFT)));
+                return false;
+            }
+            break;
+
+        case KC_L:
+            if (record->event.pressed && (get_mods() & MOD_MASK_CTRL) && (get_mods() & MOD_MASK_GUI)) {
+                tap_code16(LCTL(LGUI(KC_RIGHT)));
+                return false;
+            }
+            break;
 
         default:
             return true;
     }
+
+    return true;
 }
 
-bool process_normal_mode_user(uint16_t keycode, keyrecord_t *record) {
-    /* switch (keycode) { */
-    /*     case LSFT(KC_H): // ^ */
-    /*         process_vim_action(KC_CIRC, record); */
-    /*         return false; */
-    /*     case LSFT(KC_L): // $ */
-    /*         process_vim_action(KC_DLR, record); */
-    /*         return false; */
-    /* } */
+bool process_insert_mode_user(uint16_t keycode, keyrecord_t *record) {
+    if (record->event.pressed) {
+        if (keycode == KC_J) {
+            uint16_t now = timer_read();
+            if (now - vim_j_last_pressed < VIM_DOUBLE_J_DELAY) {
+                tap_code(KC_BSPC);
+                normal_mode();
+                vim_j_last_pressed = 0;
+                return false;
+            }
+
+            vim_j_last_pressed = now;
+        } else {
+            vim_j_last_pressed = 0;
+        }
+
+        if (keycode == LCTL(KC_W)) {
+            tap_code16(LCTL(KC_BSPC));
+            return false;
+        }
+    }
+
     return true;
 }
 
@@ -89,6 +113,11 @@ void rgb_matrix_vim_mode(void) {
 bool rgb_matrix_indicators_user(void) {
     rgb_matrix_vim_mode();
 
+    /* uint16_t now = timer_read(); */
+    /* if (now - vim_j_last_pressed < VIM_DOUBLE_J_DELAY) { */
+    /*     rgb_matrix_set_color(g_led_config.matrix_co[0][1], 0x00, 0xFF, 0x00); */
+    /* } */
+
     /* if (vim_mode_enabled()) { */
     /*     rgb_matrix_set_color(g_led_config.matrix_co[0][1], 0x00, 0xFF, 0x00); */
     /* } else { */
@@ -102,21 +131,21 @@ bool rgb_matrix_indicators_user(void) {
     /*     rgb_matrix_set_color(g_led_config.matrix_co[0][1], 0x00, 0x00, 0xFF); */
     /* } */
 
-    if (test_key_color) {
-        /* if (test_col >= MATRIX_COLS) { */
-        /*     test_col = 0; */
-        /*     test_row++; */
-        /*     if (test_row >= MATRIX_ROWS) { */
-        /*         test_row = 0; */
-        /*     } */
-        /* } */
-
-        rgb_matrix_set_color_all(0x00, 0x00, 0x00);
-        rgb_matrix_set_color(g_led_config.matrix_co[test_row][test_col], 0x00, 0x00, 0xFF);
-        /* test_col++; */
-        /* wait_ms(100); */
-        return false;
-    }
+    /* if (test_key_color) { */
+    /*     if (test_col >= MATRIX_COLS) { */
+    /*         test_col = 0; */
+    /*         test_row++; */
+    /*         if (test_row >= MATRIX_ROWS) { */
+    /*             test_row = 0; */
+    /*         } */
+    /*     } */
+    /**/
+    /*     rgb_matrix_set_color_all(0x00, 0x00, 0x00); */
+    /*     rgb_matrix_set_color(g_led_config.matrix_co[test_row][test_col], 0x00, 0x00, 0xFF); */
+    /*     test_col++; */
+    /*     wait_ms(100); */
+    /*     return false; */
+    /* } */
 
         /* if (test_index >= RGB_MATRIX_LED_COUNT) { */
         /*     test_index = 0; */
@@ -136,7 +165,7 @@ void side_led_vim_mode(void) {
             hsv.h = 140;
             break;
         case INSERT_MODE:
-            hsv.h = 100;
+            hsv.h = 90;
             break;
         case VISUAL_MODE:
         case VISUAL_LINE_MODE:

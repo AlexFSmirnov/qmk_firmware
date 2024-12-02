@@ -47,7 +47,7 @@ bool f_wakeup_prepare   = 0;
 uint16_t       rf_linking_time       = 0;
 uint16_t       rf_link_show_time     = 0;
 uint8_t        rf_blink_cnt          = 0;
-uint16_t       no_act_time           = 0;
+uint32_t       no_act_time           = 0;
 uint8_t        rf_sw_temp            = 0;
 uint16_t       dev_reset_press_delay = 0;
 uint16_t       rf_sw_press_delay     = 0;
@@ -411,7 +411,7 @@ void timer_pro(void) {
 
     if (rf_link_show_time < RF_LINK_SHOW_TIME) rf_link_show_time++;
 
-    if (no_act_time < 0xffff) no_act_time++;
+    if (no_act_time < 0xffffffff) no_act_time++;
 
     if (rf_linking_time < 0xffff) rf_linking_time++;
 }
@@ -443,10 +443,10 @@ void londing_eeprom_data(void) {
 
 /* qmk process record */
 bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
+    no_act_time = 0;
     if(!process_record_user(keycode, record)){
         return false;
     }
-    no_act_time = 0;
     switch (keycode) {
         case RF_DFU:
             if (record->event.pressed) {
