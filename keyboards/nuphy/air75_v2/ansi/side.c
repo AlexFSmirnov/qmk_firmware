@@ -17,10 +17,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "ansi.h"
 #include "side_table.h"
+#include "utils.h"
 
-#define SIDE_BRIGHT_MAX     4
+/* Doubled-precision brightness (0..10 instead of 0..5) and hue (0..15
+ * instead of 0..7) so the SIDE_VAI/VAD and SIDE_HUI/HUD keys give finer
+ * control. Lookup tables (side_light_table, colour_lib) are expanded to
+ * match. */
+#define SIDE_BRIGHT_MAX     9
 #define SIDE_SPEED_MAX      4
-#define SIDE_COLOUR_MAX     8
+#define SIDE_COLOUR_MAX     16
 
 #define SIDE_LINE           6
 #define SIDE_LED_NUM        12
@@ -57,13 +62,20 @@ const uint8_t side_speed_table[5][5] = {
     [SIDE_OFF]    = {50, 50, 50, 50, 50}, //
 };
 
-const uint8_t side_light_table[6] = {
-    0,   //
-    22,  //
-    34,  //
-    55,  //
-    79,  //
-    106, //
+/* 11-level brightness curve (was 6 levels: 0, 22, 34, 55, 79, 106). Each
+ * intermediate stop is the midpoint of the original adjacent pair. */
+const uint8_t side_light_table[11] = {
+    0,   //  0
+    11,  //  1 (mid 0..22)
+    22,  //  2
+    28,  //  3 (mid 22..34)
+    34,  //  4
+    44,  //  5 (mid 34..55)
+    55,  //  6
+    67,  //  7 (mid 55..79)
+    79,  //  8
+    92,  //  9 (mid 79..106)
+    106, // 10
 };
 
 const uint8_t side_led_index_tab[SIDE_LINE][2] = {
@@ -125,7 +137,7 @@ void side_light_control(uint8_t dir) {
             side_light--;
     }
     user_config.ee_side_light = side_light;
-    eeconfig_update_user_datablock(&user_config);
+    user_config_save();
 }
 
 /**
@@ -142,7 +154,7 @@ void side_speed_control(uint8_t dir) {
         if ((side_speed) < SIDE_SPEED_MAX) side_speed++;
     }
     user_config.ee_side_speed = side_speed;
-    eeconfig_update_user_datablock(&user_config);
+    user_config_save();
 }
 
 /**
@@ -182,7 +194,7 @@ void side_colour_control(uint8_t dir) {
     }
     user_config.ee_side_rgb    = side_rgb;
     user_config.ee_side_colour = side_colour;
-    eeconfig_update_user_datablock(&user_config);
+    user_config_save();
 }
 
 /**
@@ -205,7 +217,7 @@ void side_mode_control(uint8_t dir) {
     }
     side_play_point          = 0;
     user_config.ee_side_mode = side_mode;
-    eeconfig_update_user_datablock(&user_config);
+    user_config_save();
 }
 
 /**
@@ -770,7 +782,7 @@ void device_reset_init(void) {
     user_config.ee_side_rgb             = side_rgb;
     user_config.ee_side_colour          = side_colour;
     user_config.sleep_enable            = true;
-    eeconfig_update_user_datablock(&user_config);
+    user_config_save();
 }
 
 /**

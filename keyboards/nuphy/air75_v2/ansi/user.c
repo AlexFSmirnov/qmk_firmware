@@ -1,25 +1,26 @@
 #include "user.h"
 #include "ansi.h"
 #include "timer.h"
+#include "utils.h"
+#include "layers.h"
+#include "macros.h"
 #include "qmk-vim/src/vim.h"
 #include "qmk-vim/src/modes.h"
 
-bool vim_locked_disabled = false;
-uint16_t vim_j_last_pressed = 0;
-
-void set_left_rgb(uint8_t r, uint8_t g, uint8_t b);
-void set_right_rgb(uint8_t r, uint8_t g, uint8_t b);
-uint8_t scale8(uint8_t value, uint8_t scale);
-/* bool process_normal_mode(uint16_t keycode, const keyrecord_t *record); */
-/* bool process_vim_action(uint16_t keycode, const keyrecord_t *record); */
+bool     vim_locked_disabled = false;
+uint16_t vim_j_last_pressed  = 0;
 
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
+    /* Macro layer / recording capture has top priority. If it consumed the
+     * event we stop processing. */
+    if (macro_process_record(keycode, record)) {
+        return false;
+    }
+
     if (!process_vim_mode(keycode, record)) {
         return false;
     }
 
-    /* test_row = record->event.key.row; */
-    /* test_col = record->event.key.col; */
     switch (keycode) {
         case VIM_LOCK:
             if (record->event.pressed) {
@@ -32,7 +33,6 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             if (vim_locked_disabled) {
                 return false;
             }
-
             if (record->event.pressed) {
                 toggle_vim_mode();
             }
@@ -42,7 +42,6 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             if (vim_locked_disabled) {
                 return false;
             }
-
             if (record->event.pressed) {
                 enable_vim_mode();
             } else {
@@ -81,7 +80,6 @@ bool process_insert_mode_user(uint16_t keycode, keyrecord_t *record) {
                 vim_j_last_pressed = 0;
                 return false;
             }
-
             vim_j_last_pressed = now;
         } else {
             vim_j_last_pressed = 0;
@@ -96,70 +94,30 @@ bool process_insert_mode_user(uint16_t keycode, keyrecord_t *record) {
     return true;
 }
 
-void rgb_matrix_vim_mode(void) {
-    uint8_t led_index = g_led_config.matrix_co[1][16];
-    uint8_t brightness = scale8(rgb_matrix_config.hsv.v, 200);
+void housekeeping_task_user(void) {
+    macro_task();
+}
+
+static void rgb_matrix_vim_mode(void) {
+    uint8_t brightness = scale8(rgb_matrix_get_val(), 200);
 
     if (vim_locked_disabled) {
-        rgb_matrix_set_color(led_index, brightness, 0x00, 0x00);
+        set_key_rgb(1, 16, brightness, 0x00, 0x00);
         return;
     }
     if (vim_mode_enabled()) {
-        rgb_matrix_set_color(led_index, 0x00, brightness, 0x00);
-        return;
+        set_key_rgb(1, 16, 0x00, brightness, 0x00);
     }
 }
 
 bool rgb_matrix_indicators_user(void) {
+    layer_overlay_render_keys();
     rgb_matrix_vim_mode();
-
-    /* uint16_t now = timer_read(); */
-    /* if (now - vim_j_last_pressed < VIM_DOUBLE_J_DELAY) { */
-    /*     rgb_matrix_set_color(g_led_config.matrix_co[0][1], 0x00, 0xFF, 0x00); */
-    /* } */
-
-    /* if (vim_mode_enabled()) { */
-    /*     rgb_matrix_set_color(g_led_config.matrix_co[0][1], 0x00, 0xFF, 0x00); */
-    /* } else { */
-    /*     rgb_matrix_set_color(g_led_config.matrix_co[0][1], 0xFF, 0x00, 0x00); */
-    /* } */
-
-    /* if (vim_state == ENABLED) { */
-    /*     rgb_matrix_set_color(g_led_config.matrix_co[0][1], 0x00, 0xFF, 0x00); */
-    /* } */
-    /* if (vim_state == DISABLED) { */
-    /*     rgb_matrix_set_color(g_led_config.matrix_co[0][1], 0x00, 0x00, 0xFF); */
-    /* } */
-
-    /* if (test_key_color) { */
-    /*     if (test_col >= MATRIX_COLS) { */
-    /*         test_col = 0; */
-    /*         test_row++; */
-    /*         if (test_row >= MATRIX_ROWS) { */
-    /*             test_row = 0; */
-    /*         } */
-    /*     } */
-    /**/
-    /*     rgb_matrix_set_color_all(0x00, 0x00, 0x00); */
-    /*     rgb_matrix_set_color(g_led_config.matrix_co[test_row][test_col], 0x00, 0x00, 0xFF); */
-    /*     test_col++; */
-    /*     wait_ms(100); */
-    /*     return false; */
-    /* } */
-
-        /* if (test_index >= RGB_MATRIX_LED_COUNT) { */
-        /*     test_index = 0; */
-        /* } */
-        /* rgb_matrix_set_color(test_index, 0x00, 0xFF, 0x00); */
-        /* test_index++; */
-        /* wait_ms(100); */
-        /* return false; */
-
     return true;
 }
 
-void side_led_vim_mode(void) {
-    HSV hsv = rgb_matrix_config.hsv;
+static void side_led_vim_mode(void) {
+    HSV hsv = rgb_matrix_get_hsv();
     switch (get_vim_mode()) {
         case NORMAL_MODE:
             hsv.h = 140;
@@ -174,17 +132,20 @@ void side_led_vim_mode(void) {
         default:
             break;
     }
-
-    RGB rgb = hsv_to_rgb(hsv);
-    set_left_rgb(rgb.r, rgb.g, rgb.b);
-    set_right_rgb(rgb.r, rgb.g, rgb.b);
+    set_sides_hsv_full(hsv.h, hsv.s, hsv.v);
 }
 
 bool side_led_show_user(void) {
+    /* Priority order: macro recording/playback > vim > layer overlay > stock animation */
+    if (macro_render_sides()) {
+        return false;
+    }
     if (vim_mode_enabled()) {
         side_led_vim_mode();
         return false;
     }
-
+    if (layer_overlay_render_sides()) {
+        return false;
+    }
     return true;
 }

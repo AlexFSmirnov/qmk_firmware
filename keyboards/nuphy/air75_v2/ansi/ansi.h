@@ -51,6 +51,9 @@ enum custom_keycodes {
     VIM_HOLD,
     VIM_TOGGLE,
     VIM_LOCK,
+
+    SIDE_RMOD,
+    SIDE_HUD,
 };
 
 typedef enum {

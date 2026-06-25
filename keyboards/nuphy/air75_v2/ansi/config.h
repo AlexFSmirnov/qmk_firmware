@@ -36,12 +36,24 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #define TAP_CODE_DELAY                      8
 #define DYNAMIC_KEYMAP_MACRO_DELAY          8
-#define DYNAMIC_KEYMAP_LAYER_COUNT          8
+#define DYNAMIC_KEYMAP_LAYER_COUNT          7
 
-#define EECONFIG_USER_DATA_SIZE             8
+/* Bump emulated EEPROM storage from the default 4KB to 6KB (write log shrinks
+ * from 4KB to 2KB). The chip has 8KB total of flash reserved for EEPROM
+ * emulation; this gives us enough room for VIA's dynamic keymap PLUS the
+ * runtime macro slots while still leaving 2KB of write log. */
+#define FEE_DENSITY_BYTES                   6144
+
+/* User data block holds: user_config_t at offset 0, then 16 bytes padding,
+ * then 12 macro slots of 260 bytes each = 3136 bytes. Round up to 3200. */
+#define EECONFIG_USER_DATA_SIZE             3200
+#define EECONFIG_USER_DATA_VERSION          0x1A75C002
 
 #define RGB_MATRIX_DEFAULT_MODE             RGB_MATRIX_SOLID_REACTIVE
 #define RGB_MATRIX_SLEEP
+
+/* Halve the hue step (default 8) so RGB_HUI / RGB_HUD give finer control. */
+#define RGB_MATRIX_HUE_STEP                 4
 
 #define WS2812_TIMING       850
 #define WS2812_T1H          700

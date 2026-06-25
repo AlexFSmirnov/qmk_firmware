@@ -1,75 +1,160 @@
 /*
-Copyright 2023 @ Nuphy <https://nuphy.com/>
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 2 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program.  If not, see <http://www.gnu.org/licenses/>.
-*/
+ * NuPhy Air75 V2 ANSI - custom keymap.
+ *
+ * Layer map (see layers.h / macros.h for the named constants and the short
+ * L_MAC / L_MFN / L_WIN / L_WFN / L_VIM / L_CFG / L_MCR aliases used in
+ * MO() calls below):
+ *
+ *   0  Mac base
+ *   1  Mac Fn          (held via Fn key)
+ *   2  Win base
+ *   3  Win Fn          (held via Fn key)
+ *   4  Vim navigation  (held via Caps Lock on both Mac/Win, or Right Alt)
+ *   5  Config          (held via Fn + Del) - RGB matrix, side LED, system
+ *   6  Macros          (held via Right Ctrl position) - 12 macro slots
+ *
+ * `_______` (= KC_TRNS) is used everywhere on the overlay layers for keys
+ * that aren't explicitly remapped. KC_TRNS falls through to the layer
+ * below, which means modifiers (Shift/Ctrl/Cmd/...) and base-layer keys
+ * still work while an overlay is held. The active-key whitening in
+ * layers.c lights only keys that have a *non-transparent* assignment on
+ * the active overlay, so falling through never adds stray highlights.
+ *
+ * Use `XXXXXXX` (= KC_NO) instead of `_______` only if you want a
+ * position to actively swallow the keypress (no fallthrough). Currently
+ * unused in this keymap.
+ *
+ * Notable bindings (apply to both Mac and Win):
+ *   - Caps Lock  -> MO(L_VIM)  (hjkl arrows held layer)
+ *   - Right Alt  -> MO(L_VIM)  (same, for right hand)
+ *   - Right Ctrl -> MO(L_MCR)  (macro layer)
+ *   - Fn + Del   -> MO(L_CFG)  (RGB / side / system config)
+ *   - Fn + 1..3  -> LNK_BLE1..3
+ *   - Fn + 4     -> LNK_RF
+ *   - Fn + Q..]  -> F13..F24
+ *   - Fn + B     -> BAT_NUM    (battery percentage display)
+ *
+ * Column alignment: every cell below is exactly 12 characters wide so the
+ * source visually mirrors the physical key grid. Wide keys (BSpc, BSls,
+ * Enter, LShift, RShift, Space) occupy multiple cells; an "empty cell" is
+ * a 12-char run of spaces. Please keep this convention if you edit.
+ */
 
 #include QMK_KEYBOARD_H
+#include "layers.h"
+#include "macros.h"
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
-// layer Mac
-[0] = LAYOUT_ansi_84(
-	KC_ESC, 	KC_BRID,  	KC_BRIU,  	MAC_TASK, 	MAC_SEARCH, MAC_VOICE,  MAC_DND,  	KC_MPRV,  	KC_MPLY,  	KC_MNXT, 	KC_MUTE, 	KC_VOLD, 	KC_VOLU, 	MAC_PRTA,	KC_INS,		KC_DEL,
-	KC_GRV, 	KC_1,   	KC_2,   	KC_3,  		KC_4,   	KC_5,   	KC_6,   	KC_7,   	KC_8,   	KC_9,  		KC_0,   	KC_MINS,	KC_EQL, 				KC_BSPC,	KC_PGUP,
-	KC_TAB, 	KC_Q,   	KC_W,   	KC_E,  		KC_R,   	KC_T,   	KC_Y,   	KC_U,   	KC_I,   	KC_O,  		KC_P,   	KC_LBRC,	KC_RBRC, 				KC_BSLS,	KC_PGDN,
-	KC_CAPS,	KC_A,   	KC_S,   	KC_D,  		KC_F,   	KC_G,   	KC_H,   	KC_J,   	KC_K,   	KC_L,  		KC_SCLN,	KC_QUOT, 	 						KC_ENT,		KC_HOME,
-	KC_LSFT,				KC_Z,   	KC_X,   	KC_C,  		KC_V,   	KC_B,   	KC_N,   	KC_M,   	KC_COMM,	KC_DOT,		KC_SLSH,				KC_RSFT,	KC_UP,		KC_END,
-	KC_LCTL,	KC_LALT,	KC_LGUI,										KC_SPC, 							KC_RGUI,	MO(1),   	KC_RCTL,				KC_LEFT,	KC_DOWN,    KC_RGHT),
+    /* ====================================================================
+     * Layer 0 - Mac base
+     * ==================================================================== */
+    [MAC_BASE_LAYER] = LAYOUT_ansi_84(
+        KC_ESC,     KC_BRID,    KC_BRIU,    MAC_TASK,   MAC_SEARCH, MAC_VOICE,  MAC_DND,    KC_MPRV,    KC_MPLY,    KC_MNXT,    KC_MUTE,    KC_VOLD,    KC_VOLU,    MAC_PRTA,   KC_INS,     KC_DEL,
+        KC_GRV,     KC_1,       KC_2,       KC_3,       KC_4,       KC_5,       KC_6,       KC_7,       KC_8,       KC_9,       KC_0,       KC_MINS,    KC_EQL,     KC_BSPC,                KC_PGUP,
+        KC_TAB,     KC_Q,       KC_W,       KC_E,       KC_R,       KC_T,       KC_Y,       KC_U,       KC_I,       KC_O,       KC_P,       KC_LBRC,    KC_RBRC,    KC_BSLS,                KC_PGDN,
+        MO(L_VIM),  KC_A,       KC_S,       KC_D,       KC_F,       KC_G,       KC_H,       KC_J,       KC_K,       KC_L,       KC_SCLN,    KC_QUOT,    KC_ENT,                             KC_HOME,
+        KC_LSFT,                KC_Z,       KC_X,       KC_C,       KC_V,       KC_B,       KC_N,       KC_M,       KC_COMM,    KC_DOT,     KC_SLSH,    KC_RSFT,                KC_UP,      KC_END,
+        KC_LCTL,    KC_LALT,    KC_LGUI,    KC_SPC,                                                                              MO(L_VIM),  MO(L_MFN),  MO(L_MCR),  KC_LEFT,    KC_DOWN,    KC_RGHT
+    ),
 
-// layer Mac Fn
-[1] = LAYOUT_ansi_84(
-	_______, 	KC_F1,  	KC_F2,  	KC_F3, 		KC_F4,  	KC_F5,  	KC_F6,  	KC_F7,  	KC_F8,  	KC_F9, 		KC_F10, 	KC_F11, 	KC_F12, 	MAC_PRT,	_______,	_______,
-	_______, 	LNK_BLE1,  	LNK_BLE2,  	LNK_BLE3,  	LNK_RF,   	_______,   	_______,   	_______,   	_______,   	_______,  	_______,   	_______,	_______, 				_______,	_______,
-	_______, 	_______,   	_______,   	_______,  	_______,   	_______,   	_______,   	_______,   	_______,   	_______,  	_______,   	DEV_RESET,	SLEEP_MODE, 			BAT_SHOW,	_______,
-	_______,	_______,   	_______,   	_______,  	_______,   	_______,   	_______,	_______,   	_______,   	_______,  	_______,	_______, 	 						_______,	_______,
-	_______,				_______,   	_______,   	RGB_TEST,  	_______,   	BAT_NUM,   	_______,	MO(5), 		RGB_SPD,	RGB_SPI,	_______,				_______,	RGB_VAI,	_______,
-	_______,	_______,	_______,										_______, 							_______,	MO(1),   	_______,				RGB_MOD,	RGB_VAD,    RGB_HUI),
+    /* ====================================================================
+     * Layer 1 - Mac Fn
+     *   Fn + Del : MO(L_CFG)
+     *   Fn + 1..4: LNK_BLE1..3 + LNK_RF
+     *   Fn + Q..]: F13..F24
+     *   Fn + B   : BAT_NUM
+     * Everything else falls through (so Fn + Shift, Fn + media still work).
+     * ==================================================================== */
+    [MAC_FN_LAYER] = LAYOUT_ansi_84(
+        _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    MO(L_CFG),
+        _______,    LNK_BLE1,   LNK_BLE2,   LNK_BLE3,   LNK_RF,     _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,                _______,
+        _______,    KC_F13,     KC_F14,     KC_F15,     KC_F16,     KC_F17,     KC_F18,     KC_F19,     KC_F20,     KC_F21,     KC_F22,     KC_F23,     KC_F24,     _______,                _______,
+        _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,                            _______,
+        _______,                _______,    _______,    _______,    _______,    BAT_NUM,    _______,    _______,    _______,    _______,    _______,    _______,                _______,    _______,
+        _______,    _______,    _______,    _______,                                                                             _______,    _______,    _______,    _______,    _______,    _______
+    ),
 
-// layer win
-[2] = LAYOUT_ansi_84(
-	KC_ESC, 	KC_F1,  	KC_F2,  	KC_F3, 		KC_F4,  	KC_F5,  	KC_F6,  	KC_F7,  	KC_F8,  	KC_F9, 		KC_F10, 	KC_F11, 	KC_F12, 	KC_HOME,	KC_END,		KC_DEL,
-	KC_GRV, 	KC_1,   	KC_2,   	KC_3,  		KC_4,   	KC_5,   	KC_6,   	KC_7,   	KC_8,   	KC_9,  		KC_0,   	KC_MINS,	KC_EQL, 				KC_BSPC,	VIM_TOGGLE,
-	KC_TAB, 	KC_Q,   	KC_W,   	KC_E,  		KC_R,   	KC_T,   	KC_Y,   	KC_U,   	KC_I,   	KC_O,  		KC_P,   	KC_LBRC,	KC_RBRC, 				KC_BSLS,	KC_F13,
-	MO(4),  	KC_A,   	KC_S,   	KC_D,  		KC_F,   	KC_G,   	KC_H,   	KC_J,   	KC_K,   	KC_L,  		KC_SCLN,	KC_QUOT, 	 						KC_ENT,		KC_F14,
-	KC_LSFT,				KC_Z,   	KC_X,   	KC_C,  		KC_V,   	KC_B,   	KC_N,   	KC_M,   	KC_COMM,	KC_DOT,		KC_SLSH,				KC_RSFT,	KC_UP,		KC_F15,
-	KC_LCTL,	KC_LGUI,	KC_LALT,										KC_SPC, 							KC_RALT,	MO(3),   	KC_RCTL,				KC_LEFT,	KC_DOWN,    KC_RGHT),
+    /* ====================================================================
+     * Layer 2 - Win base
+     * ==================================================================== */
+    [WIN_BASE_LAYER] = LAYOUT_ansi_84(
+        KC_ESC,     KC_F1,      KC_F2,      KC_F3,      KC_F4,      KC_F5,      KC_F6,      KC_F7,      KC_F8,      KC_F9,      KC_F10,     KC_F11,     KC_F12,     KC_PSCR,    KC_INS,     KC_DEL,
+        KC_GRV,     KC_1,       KC_2,       KC_3,       KC_4,       KC_5,       KC_6,       KC_7,       KC_8,       KC_9,       KC_0,       KC_MINS,    KC_EQL,     KC_BSPC,                KC_PGUP,
+        KC_TAB,     KC_Q,       KC_W,       KC_E,       KC_R,       KC_T,       KC_Y,       KC_U,       KC_I,       KC_O,       KC_P,       KC_LBRC,    KC_RBRC,    KC_BSLS,                KC_PGDN,
+        MO(L_VIM),  KC_A,       KC_S,       KC_D,       KC_F,       KC_G,       KC_H,       KC_J,       KC_K,       KC_L,       KC_SCLN,    KC_QUOT,    KC_ENT,                             KC_HOME,
+        KC_LSFT,                KC_Z,       KC_X,       KC_C,       KC_V,       KC_B,       KC_N,       KC_M,       KC_COMM,    KC_DOT,     KC_SLSH,    KC_RSFT,                KC_UP,      KC_END,
+        KC_LCTL,    KC_LGUI,    KC_LALT,    KC_SPC,                                                                              MO(L_VIM),  MO(L_WFN),  MO(L_MCR),  KC_LEFT,    KC_DOWN,    KC_RGHT
+    ),
 
-// layer win Fn
-[3] = LAYOUT_ansi_84(
-	_______, 	KC_BRID,   	KC_BRIU,    _______,  	_______,   	_______,   	_______,   	KC_MPRV,   	KC_MPLY,   	KC_MNXT,  	KC_MUTE, 	KC_VOLD, 	KC_VOLU,	_______,	_______,	_______,
-	_______, 	LNK_BLE1,  	LNK_BLE2,  	LNK_BLE3,  	LNK_RF,   	_______,   	_______,   	_______,   	_______,   	_______,  	_______,   	_______,	_______, 				_______,	VIM_LOCK,
-	_______, 	_______,   	_______,   	_______,  	_______,   	_______,   	_______,   	_______,   	_______,   	_______,  	_______,   	DEV_RESET,	SLEEP_MODE, 			BAT_SHOW,	SIDE_VAI,
-	_______,	_______,   	_______,   	_______,  	_______,   	_______,   	_______,	_______,   	_______,   	_______,  	_______,	_______, 	 						_______,	SIDE_VAD,
-	_______,				_______,   	_______,   	RGB_TEST,  	_______,   	BAT_NUM,   	_______,	MO(5), 		RGB_SPD,	RGB_SPI,	_______,				_______,	RGB_VAI,	SIDE_HUI,
-	_______,	_______,	_______,										_______, 							_______,	MO(3),   	_______,				RGB_MOD,	RGB_VAD,    RGB_HUI),
+    /* ====================================================================
+     * Layer 3 - Win Fn (same template as Mac Fn)
+     * ==================================================================== */
+    [WIN_FN_LAYER] = LAYOUT_ansi_84(
+        _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    MO(L_CFG),
+        _______,    LNK_BLE1,   LNK_BLE2,   LNK_BLE3,   LNK_RF,     _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,                _______,
+        _______,    KC_F13,     KC_F14,     KC_F15,     KC_F16,     KC_F17,     KC_F18,     KC_F19,     KC_F20,     KC_F21,     KC_F22,     KC_F23,     KC_F24,     _______,                _______,
+        _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,                            _______,
+        _______,                _______,    _______,    _______,    _______,    BAT_NUM,    _______,    _______,    _______,    _______,    _______,    _______,                _______,    _______,
+        _______,    _______,    _______,    _______,                                                                             _______,    _______,    _______,    _______,    _______,    _______
+    ),
 
-// layer 4 - hjkl arrows
-[4] = LAYOUT_ansi_84(
-	_______, 	_______,  	_______,  	_______, 	_______,  	_______,  	_______,  	_______,  	_______,  	_______, 	_______, 	_______, 	_______, 	_______,	_______,	_______,
-	_______, 	_______,   	_______,   	_______,  	_______,   	_______,   	_______,   	_______,   	_______,   	_______,  	_______,   	_______,	_______, 				_______,	_______,
-	_______, 	_______,   	_______,   	_______,  	_______,   	_______,   	_______,   	_______,   	_______,   	_______,  	_______,   	_______,	_______, 				_______,	_______,
-	MO(4),  	_______,   	_______,   	_______,  	_______,   	_______,   	KC_LEFT,   	KC_DOWN,   	KC_UP,   	KC_RIGHT,  	_______,	_______, 	 						_______,	_______,
-	_______,				_______,   	_______,   	_______,  	_______,   	_______,   	_______,   	_______,   	_______,	_______,	_______,				_______,	_______,	_______,
-	_______,	_______,	_______,										_______, 							_______,	MO(5),   	_______,				_______,	_______,    _______),
+    /* ====================================================================
+     * Layer 4 - Vim navigation (hjkl -> arrows)
+     * ==================================================================== */
+    [VIM_NAV_LAYER] = LAYOUT_ansi_84(
+        _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,
+        _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,                _______,
+        _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,                _______,
+        _______,    _______,    _______,    _______,    _______,    _______,    KC_LEFT,    KC_DOWN,    KC_UP,      KC_RGHT,    _______,    _______,    _______,                            _______,
+        _______,                _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,                _______,    _______,
+        _______,    _______,    _______,    _______,                                                                             _______,    _______,    _______,    _______,    _______,    _______
+    ),
 
-// layer 5
-[5] = LAYOUT_ansi_84(
-	_______, 	_______,  	_______,  	_______, 	_______,  	_______,  	_______,  	_______,  	_______,  	_______, 	_______, 	_______, 	_______, 	_______,	_______,	_______,
-	_______, 	_______,   	_______,   	_______,  	_______,   	_______,   	_______,   	_______,   	_______,   	_______,  	_______,   	_______,	_______, 				_______,	_______,
-	_______, 	_______,   	_______,   	_______,  	_______,   	_______,   	_______,   	_______,   	_______,   	_______,  	_______,   	_______,	_______, 				_______,	_______,
-	_______,	_______,   	_______,   	_______,  	_______,   	_______,   	_______,   	_______,   	_______,   	_______,  	_______,	_______, 	 						_______,	_______,
-	_______,				_______,   	_______,   	_______,  	_______,   	_______,   	_______,   	_______,   	SIDE_SPD,	SIDE_SPI,	_______,				_______,	SIDE_VAI,	_______,
-	_______,	_______,	_______,										_______, 							_______,	MO(5),   	_______,				SIDE_MOD,	SIDE_VAD,   SIDE_HUI)
+    /* ====================================================================
+     * Layer 5 - Config (RGB matrix + side LED + system)
+     *
+     *   Q/A: RGB_MOD  / RGB_RMOD     (effect next / prev)
+     *   W/S: RGB_VAI  / RGB_VAD      (matrix brightness)
+     *   E/D: RGB_HUI  / RGB_HUD      (matrix hue)
+     *   R/F: RGB_SPI  / RGB_SPD      (matrix speed)
+     *   U/J: SIDE_MOD / SIDE_RMOD    (side mode next / prev)
+     *   I/K: SIDE_VAI / SIDE_VAD     (side brightness)
+     *   O/L: SIDE_HUI / SIDE_HUD     (side color next / prev)
+     *   P/;: SIDE_SPI / SIDE_SPD     (side speed)
+     *   B  : BAT_SHOW
+     *   N  : SLEEP_MODE
+     *   M  : DEV_RESET (factory reset, long press)
+     * ==================================================================== */
+    [CONFIG_LAYER] = LAYOUT_ansi_84(
+        _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,
+        _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,                _______,
+        _______,    RGB_MOD,    RGB_VAI,    RGB_HUI,    RGB_SPI,    _______,    _______,    SIDE_MOD,   SIDE_VAI,   SIDE_HUI,   SIDE_SPI,   _______,    _______,    _______,                _______,
+        _______,    RGB_RMOD,   RGB_VAD,    RGB_HUD,    RGB_SPD,    _______,    _______,    SIDE_RMOD,  SIDE_VAD,   SIDE_HUD,   SIDE_SPD,   _______,    _______,                            _______,
+        _______,                _______,    _______,    _______,    _______,    BAT_SHOW,   SLEEP_MODE, DEV_RESET,  _______,    _______,    _______,    _______,                _______,    _______,
+        _______,    _______,    _______,    _______,                                                                             _______,    _______,    _______,    _______,    _______,    _______
+    ),
+
+    /* ====================================================================
+     * Layer 6 - Macros
+     *
+     * All key positions are `_______`; the actual behaviour is implemented
+     * in macros.c by detecting (row, col) directly in process_record_user.
+     * The macro layer consumes every keypress while held, so KC_TRNS vs
+     * KC_NO is functionally irrelevant here - we use `_______` for visual
+     * consistency with the other overlays.
+     *
+     *   F1..F12 : play slot 1..12 with original delays
+     *   1..=    : play slot 1..12 instantly
+     *   Q..]    : record (empty) / save (recording) / erase (occupied)
+     *   Esc     : cancel an in-progress recording
+     * ==================================================================== */
+    [MACRO_LAYER] = LAYOUT_ansi_84(
+        _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,
+        _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,                _______,
+        _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,                _______,
+        _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,                            _______,
+        _______,                _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,                _______,    _______,
+        _______,    _______,    _______,    _______,                                                                             _______,    _______,    _______,    _______,    _______,    _______
+    )
 };

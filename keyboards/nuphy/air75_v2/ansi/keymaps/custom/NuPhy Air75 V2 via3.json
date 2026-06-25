@@ -99,93 +99,34 @@
 	"qmk_lighting"
 ],
 "customKeycodes": [
-	{
-		"name": "RF\nDFU",
-		"title": "RF DFU"
-	},
-	{
-		"name": "Link\nUSB",
-		"title": "Link USB"
-	},
-	{
-		"name": "Link\nRF",
-		"title": "Link RF"
-	},
-	{
-		"name": "Link\nBLE_1",
-		"title": "Link BLE_1"
-	},
-	{
-		"name": "Link\nBLE_2",
-		"title": "Link BLE_2"
-	},
-	{
-		"name": "Link\nBLE_3",
-		"title": "Link BLE_3"
-	},
-	{
-		"name": "Mac\nTask",
-		"title": "Mac Task"
-	},
-	{
-		"name": "Mac\nSearch",
-		"title": "Mac Search"
-	},
-	{
-		"name": "Mac\nVoice",
-		"title": "Mac Siri Voice"
-	},
-    {
-		"name": "Mac\nConsole",
-		"title": "Mac Console"
-	},
-	{
-		"name": "Print\nWhole",
-		"title": "PrintWhole"
-	},
-	{
-		"name": "Print\nArea",
-		"title": "PrintArea"
-	},
-	{
-		"name": "Side\nLight+",
-		"title": "Side Light +"
-	},
-	{
-		"name": "Side\nLight-",
-		"title": "Side Light -"
-	},
-	{
-		"name": "Side\nMode",
-		"title": "Side Next Mode"
-	},
-	{
-		"name": "Side\nColor",
-		"title": "Side Next Color"
-	},
-	{
-		"name": "Side\nFast",
-		"title": "Side Speed +"
-	},
-	{
-		"name": "Side\nSlow",
-		"title": "Side Speed -"
-	},
-	{
-		"name": "Dev\nReset",
-		"title": "Device Reset"
-	},
-	{
-		"name": "Sleep\nMode",
-		"title": "Auto Sleep"
-	},
-	{
-		"name": "Bat\nShow",
-		"title": "Battery Show"
-	},
-    {
-		"name": "Mac\nDND",
-		"title": "Mac DND"
-	}
+	{ "name": "RF\nDFU",     "title": "RF DFU" },
+	{ "name": "Link\nUSB",   "title": "Link USB" },
+	{ "name": "Link\nRF",    "title": "Link RF" },
+	{ "name": "Link\nBLE_1", "title": "Link BLE_1" },
+	{ "name": "Link\nBLE_2", "title": "Link BLE_2" },
+	{ "name": "Link\nBLE_3", "title": "Link BLE_3" },
+	{ "name": "Mac\nTask",   "title": "Mac Task" },
+	{ "name": "Mac\nSearch", "title": "Mac Search" },
+	{ "name": "Mac\nVoice",  "title": "Mac Siri Voice" },
+	{ "name": "Mac\nConsole","title": "Mac Console" },
+	{ "name": "Print\nWhole","title": "PrintWhole" },
+	{ "name": "Print\nArea", "title": "PrintArea" },
+	{ "name": "Side\nLight+","title": "Side Light +" },
+	{ "name": "Side\nLight-","title": "Side Light -" },
+	{ "name": "Side\nMode",  "title": "Side Next Mode" },
+	{ "name": "Side\nColor", "title": "Side Next Color" },
+	{ "name": "Side\nFast",  "title": "Side Speed +" },
+	{ "name": "Side\nSlow",  "title": "Side Speed -" },
+	{ "name": "Dev\nReset",  "title": "Device Reset" },
+	{ "name": "Sleep\nMode", "title": "Auto Sleep" },
+	{ "name": "Bat\nShow",   "title": "Battery Show" },
+	{ "name": "Mac\nDND",    "title": "Mac DND" },
+	{ "name": "Bat\nNum",    "title": "Battery Number" },
+	{ "name": "RGB\nTest",   "title": "RGB Test" },
+	{ "name": "Vim\nHold",   "title": "Vim Mode (hold)" },
+	{ "name": "Vim\n",       "title": "Vim Mode (toggle)" },
+	{ "name": "Vim\nLock",   "title": "Vim Mode lock-off (toggle)" },
+	{ "name": "Side\nRMod",  "title": "Side Prev Mode" },
+	{ "name": "Side\nColor-","title": "Side Prev Color" }
 ]
 }

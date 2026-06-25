@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "ansi.h"
 #include "usb_main.h"
 #include "rf_driver.h"
+#include "utils.h"
 
 user_config_t user_config;
 DEV_INFO_STRUCT dev_info = {
@@ -420,7 +421,7 @@ void timer_pro(void) {
  * @brief  londing eeprom data.
  */
 void londing_eeprom_data(void) {
-    eeconfig_read_user_datablock(&user_config);
+    user_config_load();
     if (user_config.default_brightness_flag != 0xA5) {
         /* first power on, set rgb matrix brightness at middle level*/
         rgb_matrix_sethsv(255, 255, RGB_MATRIX_MAXIMUM_BRIGHTNESS - RGB_MATRIX_VAL_STEP * 2);
@@ -431,7 +432,7 @@ void londing_eeprom_data(void) {
         user_config.ee_side_rgb             = side_rgb;
         user_config.ee_side_colour          = side_colour;
         user_config.sleep_enable            = true;
-        eeconfig_update_user_datablock(&user_config);
+        user_config_save();
     } else {
         side_mode   = user_config.ee_side_mode;
         side_light  = user_config.ee_side_light;
@@ -636,9 +637,21 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
             }
             return false;
 
+        case SIDE_RMOD:
+            if (record->event.pressed) {
+                side_mode_control(0);
+            }
+            return false;
+
         case SIDE_HUI:
             if (record->event.pressed) {
                 side_colour_control(1);
+            }
+            return false;
+
+        case SIDE_HUD:
+            if (record->event.pressed) {
+                side_colour_control(0);
             }
             return false;
 
@@ -668,7 +681,7 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
                 if(user_config.sleep_enable) user_config.sleep_enable = false;
                 else user_config.sleep_enable = true;
                 f_sleep_show       = 1;
-                eeconfig_update_user_datablock(&user_config);
+                user_config_save();
             }
             return false;
 
