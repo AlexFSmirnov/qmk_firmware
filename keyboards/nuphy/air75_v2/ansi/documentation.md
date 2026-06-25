@@ -37,6 +37,12 @@ Notable keymap changes (apply to both Mac and Win):
   so both hands can reach hjkl navigation.
 - **Right Ctrl position** is now `MO(L_MCR)`. The keyboard loses RCtl; if
   you need it, remap a different key in VIA.
+- **Right column** (the navigation cluster): `PgUp` -> `VIM_TOGGLE`,
+  `PgDn` -> `F13`, `Home` -> `F14`, `End` -> `F15`. Vim toggle lives next
+  to the home row for quick reach; F13-F15 are useful as binding targets
+  in the OS (window managers, app shortcuts, etc.).
+- **Fn + PgUp position** (the same key as the new `VIM_TOGGLE`) is
+  `VIM_LOCK` - hard-disables vim mode until pressed again.
 - Short layer aliases (`L_MAC`, `L_MFN`, `L_WIN`, `L_WFN`, `L_VIM`,
   `L_CFG`, `L_MCR`) are defined in `layers.h` / `macros.h` so `MO()`
   calls stay compact and the keymap columns can align cleanly.

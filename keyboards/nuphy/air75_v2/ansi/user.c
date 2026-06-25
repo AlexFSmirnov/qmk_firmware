@@ -132,7 +132,10 @@ static void side_led_vim_mode(void) {
         default:
             break;
     }
-    set_sides_hsv_full(hsv.h, hsv.s, hsv.v);
+    /* Scale by the user's SIDE LED brightness (SIDE_VAI / SIDE_VAD), not
+     * the matrix brightness - keeps vim mode in line with the layer
+     * overlay and macro recording indicators. */
+    set_sides_hsv_side(hsv.h, hsv.s, 0xFF);
 }
 
 bool side_led_show_user(void) {
