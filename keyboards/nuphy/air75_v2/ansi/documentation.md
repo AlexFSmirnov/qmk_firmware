@@ -100,23 +100,23 @@ aligned keys on the number and U rows) are six parallel slot columns:
 
 | Row             | Action                                            |
 | --------------- | ------------------------------------------------- |
-| F7..F12         | Play slot 1..6 with the original recorded delays  |
-| 7..=            | Play slot 1..6 instantly (no delays)              |
-| U..]            | Record (if empty) / Save (if recording this slot) / Delete (if occupied) |
+| F7..F12         | Delete slot (if occupied)                         |
+| 7..=            | Record (if empty) / Save (if recording) / Play with delays (if occupied) |
+| U..]            | Play slot 1..6 instantly (no delays)              |
 | Esc             | Cancel the current recording (no save)            |
 
 Slot colors (all scaled by the RGB matrix brightness):
 
-- **Empty slot**: only the U-row record key is lit, in white. F-row and
-  number-row keys are **not overpainted** - the active RGB matrix effect
+- **Empty slot**: only the **number-row** record key is lit, in white. F-row
+  and U-row keys are **not overpainted** - the active RGB matrix effect
   (solid reactive, etc.) keeps running there.
-- **Occupied slot**: F-row = yellow (play delayed), number row = green
-  (play instant), U-row = red (erase).
-- **Currently recording into this slot**: only the U-row key blinks red;
-  the play-row keys are left to the matrix effect.
-- **Currently playing this slot**: the corresponding play key (F-row for
-  delayed, number row for instant) pulses brighter; other keys stay at
-  their occupied-slot colors.
+- **Occupied slot**: F-row = red (erase), number row = yellow (play delayed),
+  U-row = green (play instant).
+- **Currently recording into this slot**: only the number-row key blinks red;
+  the other rows are left to the matrix effect.
+- **Currently playing this slot**: the corresponding play key (number row for
+  delayed, U-row for instant) pulses brighter; other keys stay at their
+  occupied-slot colors.
 - **Esc**: bright red while a recording is in progress (acts as cancel).
 
 Side LEDs:
@@ -131,14 +131,14 @@ Side LEDs:
 
 Recording flow:
 
-1. Hold Right Ctrl, press a U-row key for an **empty** (white) slot. Side
+1. Hold Right Ctrl, press a **number-row** key (7..=) for an **empty** (white) slot. Side
    LEDs go red.
 2. Release Right Ctrl and type normally. Up to **128 events** are captured
    per slot (press and release are separate events). Delays between events
    are recorded to the nearest 10ms. **Any key event that fires while
    the macro layer is active is NOT recorded** (including the Right Ctrl
    activator itself), so toggling the macro layer is safe.
-3. Press Right Ctrl + the same U-row key to **save**, or Right Ctrl + Esc to
+3. Press Right Ctrl + the same number-row key to **save**, or Right Ctrl + Esc to
    **cancel**. The slot is auto-saved if it hits 128 events.
 
 Playback uses `register_code16`/`unregister_code16` for each event, and

@@ -6,15 +6,14 @@
  * block) and persisted across reboots.
  *
  * Slot keys live on the macro layer (`MACRO_LAYER` = 6) on cols F7..F12:
- *   row 0, col 7..12  (F7..F12)  -> play slot with original delays (yellow)
- *   row 1, col 7..12  (7..=)     -> play slot instantly             (green)
- *   row 2, col 7..12  (U..])     -> record (empty, white) /
- *                                   save (currently recording, red blink) /
- *                                   delete (occupied, red)
+ *   row 0, col 7..12  (F7..F12)  -> erase occupied slot              (red)
+ *   row 1, col 7..12  (7..=)     -> record/save (empty) or play
+ *                                   with delays (occupied)           (white/yellow)
+ *   row 2, col 7..12  (U..])     -> play instantly                   (green)
  *   row 0, col 0  (Esc)          -> cancel an in-progress recording
  *
- * Empty slots only show the row-2 record key (white).
- * Occupied slots show all three: yellow (delayed), green (instant), red (erase).
+ * Empty slots only show the number-row record key (white).
+ * Occupied slots show all three: red (erase), yellow (delayed), green (instant).
  * Brightness is synced to the RGB matrix brightness (rgb_matrix_get_val).
  *
  * While on the macro layer, NO key event is recorded into the active
@@ -184,7 +183,6 @@ void macro_record_button_pressed(uint8_t slot) {
     }
 
     if (macro_slot_is_occupied(slot)) {
-        macro_slot_clear(slot);
         return;
     }
 
@@ -205,9 +203,9 @@ macro_kind_t macro_kind_for_pos(uint8_t row, uint8_t col) {
     if (row == 0 && col == 0) return MACRO_KIND_CANCEL;  /* Esc */
     if (!macro_col_is_slot(col)) return MACRO_KIND_NONE;
     switch (row) {
-        case 0: return MACRO_KIND_PLAY_DELAYED;
-        case 1: return MACRO_KIND_PLAY_INSTANT;
-        case 2: return MACRO_KIND_REC_DEL;
+        case 0: return MACRO_KIND_ERASE;
+        case 1: return MACRO_KIND_REC_OR_DELAYED;
+        case 2: return MACRO_KIND_PLAY_INSTANT;
         default: return MACRO_KIND_NONE;
     }
 }
@@ -266,21 +264,27 @@ bool macro_process_record(uint16_t keycode, keyrecord_t *record) {
         uint8_t      slot = macro_slot_for_pos(record->event.key.row, record->event.key.col);
 
         switch (kind) {
+            case MACRO_KIND_ERASE:
+                if (macro_slot_is_occupied(slot)) {
+                    macro_slot_clear(slot);
+                }
+                return true;
+            case MACRO_KIND_REC_OR_DELAYED:
+                if (macro_slot_is_occupied(slot)) {
+                    if (!recording.active) macro_play(slot, false);
+                } else {
+                    macro_record_button_pressed(slot);
+                }
+                return true;
+            case MACRO_KIND_PLAY_INSTANT:
+                if (!recording.active) macro_play(slot, true);
+                return true;
             case MACRO_KIND_CANCEL:
                 if (recording.active) {
                     macro_cancel_recording();
                 } else if (playback.active) {
                     macro_stop_playback();
                 }
-                return true;
-            case MACRO_KIND_PLAY_DELAYED:
-                if (!recording.active) macro_play(slot, false);
-                return true;
-            case MACRO_KIND_PLAY_INSTANT:
-                if (!recording.active) macro_play(slot, true);
-                return true;
-            case MACRO_KIND_REC_DEL:
-                macro_record_button_pressed(slot);
                 return true;
             case MACRO_KIND_NONE:
             default:
@@ -330,46 +334,42 @@ void macro_render_indicators(void) {
         uint8_t col     = i + MACRO_SLOT_COL_MIN;
 
         if (recording.active && recording.slot == i) {
-            /* Recording into this slot: blink the record key red. The play
-             * keys are left to the natural matrix effect (no overpaint). */
+            /* Recording into this slot: blink the number-row record key red. */
             uint8_t b = blink_on(400) ? 0xFF : 0x10;
-            set_key_rgb(2, col, scale8(b, v), 0, 0);
+            set_key_rgb(1, col, scale8(b, v), 0, 0);
             continue;
         }
 
         if (!occupied) {
-            /* Empty slot: paint only the record (U-row) key white. F-row
-             * and number-row keys are NOT overpainted, so the active RGB
-             * matrix effect (solid reactive, etc.) keeps running there. */
-            set_key_rgb(2, col, scale8(0xFF, v), scale8(0xFF, v), scale8(0xFF, v));
+            /* Empty slot: paint only the number-row record key white. */
+            set_key_rgb(1, col, scale8(0xFF, v), scale8(0xFF, v), scale8(0xFF, v));
             continue;
         }
 
-        /* Occupied slot: paint all three indicator keys (full RGB; scaled
-         * by matrix brightness `v` below).
-         *   row 0 (F7..F12)  - play with original delays  -> yellow
-         *   row 1 (7..=)     - play instantly             -> green
-         *   row 2 (U..])     - erase                      -> red
+        /* Occupied slot:
+         *   row 0 (F7..F12)  - erase           -> red
+         *   row 1 (7..=)     - play delayed    -> yellow
+         *   row 2 (U..])     - play instant    -> green
          */
-        uint8_t fr = 0xFF, fg = 0xC0, fb = 0;   /* yellow */
-        uint8_t nr = 0,    ng = 0xFF, nb = 0;   /* green  */
-        uint8_t qr = 0xFF, qg = 0,    qb = 0;   /* red    */
+        uint8_t fr = 0xFF, fg = 0,    fb = 0;   /* red    */
+        uint8_t nr = 0xFF, ng = 0xC0, nb = 0;   /* yellow */
+        uint8_t ur = 0,    ug = 0xFF, ub = 0;   /* green  */
 
         /* Pulse the active play key while this slot is playing. */
         if (playback.active && playback.slot == i) {
             uint8_t p     = pulse_value(600);
             uint8_t scale = 0x80 + (p >> 1);
             if (playback.instant) {
-                ng = scale;
+                ug = scale;
             } else {
-                fr = scale;
-                fg = scale8(0xC0, scale);
+                nr = scale;
+                ng = scale8(0xC0, scale);
             }
         }
 
         set_key_rgb(0, col, scale8(fr, v), scale8(fg, v), scale8(fb, v));
         set_key_rgb(1, col, scale8(nr, v), scale8(ng, v), scale8(nb, v));
-        set_key_rgb(2, col, scale8(qr, v), scale8(qg, v), scale8(qb, v));
+        set_key_rgb(2, col, scale8(ur, v), scale8(ug, v), scale8(ub, v));
     }
 
     /* Esc: red while a recording is in progress (acts as "cancel"). */

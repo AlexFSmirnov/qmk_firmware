@@ -186,9 +186,9 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
      * KC_NO is functionally irrelevant here - we use `_______` for visual
      * consistency with the other overlays.
      *
-     *   F7..F12 : play slot 1..6 with original delays
-     *   7..=    : play slot 1..6 instantly
-     *   U..]    : record (empty) / save (recording) / erase (occupied)
+     *   F7..F12 : erase occupied slot (red)
+     *   7..=    : record/save (empty, white) or play with delays (yellow)
+     *   U..]    : play instantly (green)
      *   Esc     : cancel an in-progress recording
      * ==================================================================== */
     [MACRO_LAYER] = LAYOUT_ansi_84(

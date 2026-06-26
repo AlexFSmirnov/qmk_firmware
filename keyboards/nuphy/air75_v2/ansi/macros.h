@@ -88,10 +88,10 @@ uint8_t macro_slot_for_pos(uint8_t row, uint8_t col);
 /* Action kind for a position on the macro layer. */
 typedef enum {
     MACRO_KIND_NONE = 0,
-    MACRO_KIND_PLAY_DELAYED,  /* row 0: F7..F12 */
-    MACRO_KIND_PLAY_INSTANT,  /* row 1: 7..= */
-    MACRO_KIND_REC_DEL,       /* row 2: U..] */
-    MACRO_KIND_CANCEL,        /* row 0 col 0: Esc */
+    MACRO_KIND_ERASE,           /* row 0: F7..F12 - delete occupied slot */
+    MACRO_KIND_REC_OR_DELAYED,  /* row 1: 7..= - record/save or play delayed */
+    MACRO_KIND_PLAY_INSTANT,    /* row 2: U..] - play instant */
+    MACRO_KIND_CANCEL,          /* row 0 col 0: Esc */
 } macro_kind_t;
 
 macro_kind_t macro_kind_for_pos(uint8_t row, uint8_t col);
