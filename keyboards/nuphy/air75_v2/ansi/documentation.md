@@ -266,8 +266,9 @@ Behaviour in `user.c`:
 - `keyboard.json` `rgb_matrix.max_brightness` = `255` (raised from 128).
 - `RGB_MATRIX_HUE_STEP` = `4` (halved from the default 8) so `RGB_HUI` /
   `RGB_HUD` give twice the precision per press.
-- `quantum/rgb_matrix/animations/solid_reactive_anim.h`: reactive effect
-  desaturates toward the base colour on press instead of hue-shifting.
+- `quantum/rgb_matrix/animations/solid_reactive_anim.h`: at rest, keys show
+  the configured H/S/V; on press they snap to white (S=0) and saturation
+  animates back to the rest colour.
 - `quantum/rgb_matrix/animations/typing_heatmap_anim.h`: adds a
   commented-out "fade from white" alternative; behaviour unchanged.
 - `side.c`: side LED update loop calls `side_led_show_user()` first.
