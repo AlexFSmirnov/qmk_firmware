@@ -11,7 +11,7 @@
  *   3  Win Fn          (held via Fn key)
  *   4  Vim navigation  (held via Caps Lock on both Mac/Win, or Right Alt)
  *   5  Config          (held via Fn + Del) - RGB matrix, side LED, system
- *   6  Macros          (held via Right Ctrl position) - 12 macro slots
+ *   6  Macros          (held via Right Ctrl position) - 6 macro slots (F7-F12)
  *
  * `_______` (= KC_TRNS) is used everywhere on the overlay layers for keys
  * that aren't explicitly remapped. KC_TRNS falls through to the layer
@@ -186,9 +186,9 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
      * KC_NO is functionally irrelevant here - we use `_______` for visual
      * consistency with the other overlays.
      *
-     *   F1..F12 : play slot 1..12 with original delays
-     *   1..=    : play slot 1..12 instantly
-     *   Q..]    : record (empty) / save (recording) / erase (occupied)
+     *   F7..F12 : play slot 1..6 with original delays
+     *   7..=    : play slot 1..6 instantly
+     *   U..]    : record (empty) / save (recording) / erase (occupied)
      *   Esc     : cancel an in-progress recording
      * ==================================================================== */
     [MACRO_LAYER] = LAYOUT_ansi_84(

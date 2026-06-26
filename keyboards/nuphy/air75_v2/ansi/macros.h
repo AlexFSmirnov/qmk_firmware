@@ -3,8 +3,12 @@
 #include "quantum.h"
 
 #define MACRO_LAYER             6
-#define MACRO_SLOT_COUNT        12
-#define MACRO_EVENTS_PER_SLOT   64
+#define MACRO_SLOT_COUNT        6
+#define MACRO_EVENTS_PER_SLOT   128
+
+/* Matrix columns for macro slot keys (F7..F12 and aligned rows below). */
+#define MACRO_SLOT_COL_MIN      7
+#define MACRO_SLOT_COL_MAX      12
 
 /* Short alias to keep keymap MO() calls compact (see layers.h for the rest). */
 #define L_MCR  MACRO_LAYER
@@ -24,7 +28,7 @@ typedef struct __attribute__((packed)) {
 #define MACRO_EVENT_PRESSED   0x80
 #define MACRO_EVENT_POS_MASK  0x7F
 
-/* One macro slot. 4 byte header + 64*4 byte events = 260 bytes. */
+/* One macro slot. 4 byte header + 128*4 byte events = 516 bytes. */
 typedef struct __attribute__((packed)) {
     uint8_t       event_count;   /* 0 = empty; 1..MACRO_EVENTS_PER_SLOT = recorded */
     uint8_t       reserved[3];
@@ -41,12 +45,12 @@ bool macro_slot_is_occupied(uint8_t slot);
 
 /* True if a recording is in progress. */
 bool macro_is_recording(void);
-/* Which slot, if any, is currently being recorded into (0..11 or 0xFF). */
+/* Which slot, if any, is currently being recorded into (0..5 or 0xFF). */
 uint8_t macro_recording_slot(void);
 
 /* True if a playback is in progress. */
 bool macro_is_playing(void);
-/* Which slot is currently being played back (0..11 or 0xFF). */
+/* Which slot is currently being played back (0..5 or 0xFF). */
 uint8_t macro_playing_slot(void);
 
 /* Toggle recording into `slot`:
@@ -77,16 +81,16 @@ bool macro_process_record(uint16_t keycode, keyrecord_t *record);
 /* Drives playback timing. Call from housekeeping_task_user(). */
 void macro_task(void);
 
-/* Returns the slot index (0..11) for the given matrix position when on the
+/* Returns the slot index (0..5) for the given matrix position when on the
  * macro layer, or 0xFF if the position is not a macro slot key. */
 uint8_t macro_slot_for_pos(uint8_t row, uint8_t col);
 
 /* Action kind for a position on the macro layer. */
 typedef enum {
     MACRO_KIND_NONE = 0,
-    MACRO_KIND_PLAY_DELAYED,  /* row 0: F1..F12 */
-    MACRO_KIND_PLAY_INSTANT,  /* row 1: 1..= */
-    MACRO_KIND_REC_DEL,       /* row 2: Q..] */
+    MACRO_KIND_PLAY_DELAYED,  /* row 0: F7..F12 */
+    MACRO_KIND_PLAY_INSTANT,  /* row 1: 7..= */
+    MACRO_KIND_REC_DEL,       /* row 2: U..] */
     MACRO_KIND_CANCEL,        /* row 0 col 0: Esc */
 } macro_kind_t;
 

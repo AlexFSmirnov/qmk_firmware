@@ -45,9 +45,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define FEE_DENSITY_BYTES                   6144
 
 /* User data block holds: user_config_t at offset 0, then 16 bytes padding,
- * then 12 macro slots of 260 bytes each = 3136 bytes. Round up to 3200. */
+ * then 6 macro slots of 516 bytes each = 3112 bytes. Round up to 3200. */
 #define EECONFIG_USER_DATA_SIZE             3200
-#define EECONFIG_USER_DATA_VERSION          0x1A75C002
+#define EECONFIG_USER_DATA_VERSION          0x1A75C003
 
 #define RGB_MATRIX_DEFAULT_MODE             RGB_MATRIX_SOLID_REACTIVE
 #define RGB_MATRIX_SLEEP

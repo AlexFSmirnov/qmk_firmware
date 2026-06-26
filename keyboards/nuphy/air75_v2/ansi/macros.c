@@ -1,14 +1,14 @@
 /*
  * Runtime macros.
  *
- * 12 slots, each holding up to MACRO_EVENTS_PER_SLOT (64) keyboard events
+ * 6 slots, each holding up to MACRO_EVENTS_PER_SLOT (128) keyboard events
  * (keycode + position + delay). Stored in EEPROM (within the user data
  * block) and persisted across reboots.
  *
- * Slot keys live on the macro layer (`MACRO_LAYER` = 6) on the top 3 rows:
- *   row 0, col 1..12  (F1..F12)  -> play slot with original delays (yellow)
- *   row 1, col 1..12  (1..=)     -> play slot instantly             (green)
- *   row 2, col 1..12  (Q..])     -> record (empty, white) /
+ * Slot keys live on the macro layer (`MACRO_LAYER` = 6) on cols F7..F12:
+ *   row 0, col 7..12  (F7..F12)  -> play slot with original delays (yellow)
+ *   row 1, col 7..12  (7..=)     -> play slot instantly             (green)
+ *   row 2, col 7..12  (U..])     -> record (empty, white) /
  *                                   save (currently recording, red blink) /
  *                                   delete (occupied, red)
  *   row 0, col 0  (Esc)          -> cancel an in-progress recording
@@ -32,10 +32,13 @@ _Static_assert(sizeof(macro_slot_t) == 4 + 4 * MACRO_EVENTS_PER_SLOT, "macro_slo
 /* EEPROM layout within the user data block:
  *   [0..7]    user_config_t
  *   [8..15]   padding
- *   [16..]    macro slots (12 * sizeof(macro_slot_t) = 12 * 260 = 3120 bytes)
- * Total: 16 + 3120 = 3136 bytes. EECONFIG_USER_DATA_SIZE = 3200 (headroom).
+ *   [16..]    macro slots (6 * sizeof(macro_slot_t) = 6 * 516 = 3096 bytes)
+ * Total: 16 + 3096 = 3112 bytes. EECONFIG_USER_DATA_SIZE = 3200 (headroom).
  */
 #define MACRO_EEPROM_BASE 16
+
+/* Shared by recording and playback (mutually exclusive). */
+static macro_slot_t macro_work_buf;
 
 static void *slot_eeprom_addr(uint8_t slot) {
     return (uint8_t *)EECONFIG_USER_DATABLOCK + MACRO_EEPROM_BASE + (uint32_t)slot * sizeof(macro_slot_t);
@@ -65,8 +68,8 @@ void macro_slot_write(uint8_t slot, const macro_slot_t *in) {
 }
 
 void macro_slot_clear(uint8_t slot) {
-    macro_slot_t empty = {0};
-    macro_slot_write(slot, &empty);
+    memset(&macro_work_buf, 0, sizeof(macro_work_buf));
+    macro_slot_write(slot, &macro_work_buf);
 }
 
 bool macro_slot_is_occupied(uint8_t slot) {
@@ -83,7 +86,6 @@ static struct {
     bool         active;
     uint8_t      slot;
     uint32_t     last_event_time;
-    macro_slot_t buf;
 } recording = { .active = false, .slot = 0xFF };
 
 bool    macro_is_recording(void)    { return recording.active; }
@@ -95,7 +97,7 @@ void macro_cancel_recording(void) {
 }
 
 static void recording_save_and_stop(void) {
-    macro_slot_write(recording.slot, &recording.buf);
+    macro_slot_write(recording.slot, &macro_work_buf);
     recording.active = false;
     recording.slot   = 0xFF;
 }
@@ -109,7 +111,6 @@ static struct {
     uint8_t      index;
     uint32_t     next_time;
     uint32_t     last_press_time;
-    macro_slot_t buf;
 } playback = { .active = false, .slot = 0xFF };
 
 bool    macro_is_playing(void)    { return playback.active; }
@@ -123,8 +124,8 @@ void macro_stop_playback(void) {
 void macro_play(uint8_t slot, bool instant) {
     if (recording.active) return;
     if (slot >= MACRO_SLOT_COUNT) return;
-    macro_slot_read(slot, &playback.buf);
-    if (playback.buf.event_count == 0) return;
+    macro_slot_read(slot, &macro_work_buf);
+    if (macro_work_buf.event_count == 0) return;
     playback.active          = true;
     playback.instant         = instant;
     playback.slot            = slot;
@@ -139,7 +140,7 @@ void macro_task(void) {
     uint32_t now = timer_read32();
     if ((int32_t)(now - playback.next_time) < 0) return;
 
-    macro_event_t ev = playback.buf.events[playback.index];
+    macro_event_t ev = macro_work_buf.events[playback.index];
     uint8_t pos     = ev.pos_pressed & MACRO_EVENT_POS_MASK;
     uint8_t row     = pos / MATRIX_COLS;
     uint8_t col     = pos % MATRIX_COLS;
@@ -154,7 +155,7 @@ void macro_task(void) {
     rgb_matrix_handle_key_event(row, col, pressed);
 
     playback.index++;
-    if (playback.index >= playback.buf.event_count) {
+    if (playback.index >= macro_work_buf.event_count) {
         playback.active = false;
         playback.slot   = 0xFF;
         return;
@@ -162,7 +163,7 @@ void macro_task(void) {
 
     uint32_t delay = playback.instant
                          ? 1
-                         : (uint32_t)playback.buf.events[playback.index].delay_units * 10;
+                         : (uint32_t)macro_work_buf.events[playback.index].delay_units * 10;
     if (delay < 1) delay = 1;
     playback.next_time = now + delay;
 }
@@ -171,6 +172,7 @@ void macro_task(void) {
 
 void macro_record_button_pressed(uint8_t slot) {
     if (slot >= MACRO_SLOT_COUNT) return;
+    if (playback.active) return;
 
     if (recording.active) {
         if (recording.slot == slot) {
@@ -187,7 +189,7 @@ void macro_record_button_pressed(uint8_t slot) {
     }
 
     /* Start recording. */
-    memset(&recording.buf, 0, sizeof(recording.buf));
+    memset(&macro_work_buf, 0, sizeof(macro_work_buf));
     recording.slot            = slot;
     recording.last_event_time = timer_read32();
     recording.active          = true;
@@ -195,9 +197,13 @@ void macro_record_button_pressed(uint8_t slot) {
 
 /* ---------- position helpers ---------- */
 
+static bool macro_col_is_slot(uint8_t col) {
+    return col >= MACRO_SLOT_COL_MIN && col <= MACRO_SLOT_COL_MAX;
+}
+
 macro_kind_t macro_kind_for_pos(uint8_t row, uint8_t col) {
     if (row == 0 && col == 0) return MACRO_KIND_CANCEL;  /* Esc */
-    if (col < 1 || col > MACRO_SLOT_COUNT) return MACRO_KIND_NONE;
+    if (!macro_col_is_slot(col)) return MACRO_KIND_NONE;
     switch (row) {
         case 0: return MACRO_KIND_PLAY_DELAYED;
         case 1: return MACRO_KIND_PLAY_INSTANT;
@@ -207,9 +213,9 @@ macro_kind_t macro_kind_for_pos(uint8_t row, uint8_t col) {
 }
 
 uint8_t macro_slot_for_pos(uint8_t row, uint8_t col) {
-    if (col < 1 || col > MACRO_SLOT_COUNT) return 0xFF;
+    if (!macro_col_is_slot(col)) return 0xFF;
     if (row > 2) return 0xFF;
-    return col - 1;
+    return col - MACRO_SLOT_COL_MIN;
 }
 
 /* ---------- process_record integration ---------- */
@@ -221,28 +227,28 @@ static void capture_recorded_event(uint16_t keycode, keyrecord_t *record) {
      * recording UI, not part of the macro. */
     if (layer_state_is(MACRO_LAYER)) return;
     if (keycode == MO(MACRO_LAYER)) return;
-    if (recording.buf.event_count >= MACRO_EVENTS_PER_SLOT) {
+    if (macro_work_buf.event_count >= MACRO_EVENTS_PER_SLOT) {
         recording_save_and_stop();
         return;
     }
 
     uint32_t now   = timer_read32();
-    uint32_t delta = recording.buf.event_count == 0 ? 0 : (now - recording.last_event_time);
+    uint32_t delta = macro_work_buf.event_count == 0 ? 0 : (now - recording.last_event_time);
     uint32_t units = delta / 10;
     if (units > 255) units = 255;
 
     uint8_t pos = (uint8_t)((record->event.key.row * MATRIX_COLS + record->event.key.col) & MACRO_EVENT_POS_MASK);
     if (record->event.pressed) pos |= MACRO_EVENT_PRESSED;
 
-    recording.buf.events[recording.buf.event_count] = (macro_event_t){
+    macro_work_buf.events[macro_work_buf.event_count] = (macro_event_t){
         .keycode     = keycode,
         .pos_pressed = pos,
         .delay_units = (uint8_t)units,
     };
-    recording.buf.event_count++;
+    macro_work_buf.event_count++;
     recording.last_event_time = now;
 
-    if (recording.buf.event_count >= MACRO_EVENTS_PER_SLOT) {
+    if (macro_work_buf.event_count >= MACRO_EVENTS_PER_SLOT) {
         recording_save_and_stop();
     }
 }
@@ -321,28 +327,29 @@ void macro_render_indicators(void) {
 
     for (uint8_t i = 0; i < MACRO_SLOT_COUNT; i++) {
         bool occupied = macro_slot_is_occupied(i);
+        uint8_t col     = i + MACRO_SLOT_COL_MIN;
 
         if (recording.active && recording.slot == i) {
             /* Recording into this slot: blink the record key red. The play
              * keys are left to the natural matrix effect (no overpaint). */
             uint8_t b = blink_on(400) ? 0xFF : 0x10;
-            set_key_rgb(2, i + 1, scale8(b, v), 0, 0);
+            set_key_rgb(2, col, scale8(b, v), 0, 0);
             continue;
         }
 
         if (!occupied) {
-            /* Empty slot: paint only the record (Q-row) key white. F-row
+            /* Empty slot: paint only the record (U-row) key white. F-row
              * and number-row keys are NOT overpainted, so the active RGB
              * matrix effect (solid reactive, etc.) keeps running there. */
-            set_key_rgb(2, i + 1, scale8(0xFF, v), scale8(0xFF, v), scale8(0xFF, v));
+            set_key_rgb(2, col, scale8(0xFF, v), scale8(0xFF, v), scale8(0xFF, v));
             continue;
         }
 
         /* Occupied slot: paint all three indicator keys (full RGB; scaled
          * by matrix brightness `v` below).
-         *   row 0 (F1..F12)  - play with original delays  -> yellow
-         *   row 1 (1..=)     - play instantly             -> green
-         *   row 2 (Q..])     - erase                      -> red
+         *   row 0 (F7..F12)  - play with original delays  -> yellow
+         *   row 1 (7..=)     - play instantly             -> green
+         *   row 2 (U..])     - erase                      -> red
          */
         uint8_t fr = 0xFF, fg = 0xC0, fb = 0;   /* yellow */
         uint8_t nr = 0,    ng = 0xFF, nb = 0;   /* green  */
@@ -360,9 +367,9 @@ void macro_render_indicators(void) {
             }
         }
 
-        set_key_rgb(0, i + 1, scale8(fr, v), scale8(fg, v), scale8(fb, v));
-        set_key_rgb(1, i + 1, scale8(nr, v), scale8(ng, v), scale8(nb, v));
-        set_key_rgb(2, i + 1, scale8(qr, v), scale8(qg, v), scale8(qb, v));
+        set_key_rgb(0, col, scale8(fr, v), scale8(fg, v), scale8(fb, v));
+        set_key_rgb(1, col, scale8(nr, v), scale8(ng, v), scale8(nb, v));
+        set_key_rgb(2, col, scale8(qr, v), scale8(qg, v), scale8(qb, v));
     }
 
     /* Esc: red while a recording is in progress (acts as "cancel"). */

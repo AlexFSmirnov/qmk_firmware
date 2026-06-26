@@ -11,7 +11,7 @@ affected (plus two small upstream RGB animation tweaks).
 | `user.c` / `user.h`                        | `process_record_user`, hooks, vim, housekeeping driver    |
 | `utils.c` / `utils.h`                      | LED helpers + `user_config` persistence helpers           |
 | `layers.c` / `layers.h`                    | Per-layer overlay system (side color, white keys, custom) |
-| `macros.c` / `macros.h`                    | Runtime-recordable macros (12 slots, EEPROM-persisted)    |
+| `macros.c` / `macros.h`                    | Runtime-recordable macros (6 slots, EEPROM-persisted)     |
 | `qmk-vim/`                                 | Vendored [andrewjrae/qmk-vim](https://github.com/andrewjrae/qmk-vim) |
 | `keymaps/custom/`                          | Single source-of-truth keymap (VIA-enabled)               |
 | `rf_queue.c` / `rf_queue.h`                | 64-slot circular buffer for HID reports while RF is reconnecting (ported from [jincao1/qmk_firmware](https://github.com/jincao1/qmk_firmware)) |
@@ -30,7 +30,7 @@ Build with `qmk compile -kb nuphy/air75_v2/ansi -km custom`.
 | 3     | `WIN_FN_LAYER`       | Fn (Win base)     | Win Fn (same content as Mac Fn)     |
 | 4     | `VIM_NAV_LAYER`      | Caps Lock or RAlt | hjkl-arrow navigation (both Mac+Win) |
 | 5     | `CONFIG_LAYER`       | Fn + Del          | RGB matrix + side LED + system      |
-| 6     | `MACRO_LAYER`        | Right Ctrl        | 12 macro slots (record/play/delete) |
+| 6     | `MACRO_LAYER`        | Right Ctrl        | 6 macro slots (F7-F12: record/play/delete) |
 
 Notable keymap changes (apply to both Mac and Win):
 
@@ -95,23 +95,24 @@ and `SIDE_HUD` are wired in `ansi.c`.
 
 ### Macro layer (6)
 
-Reached by holding **Right Ctrl**. Top 3 rows are 12 parallel slot columns:
+Reached by holding **Right Ctrl**. Columns **F7 through F12** (and the
+aligned keys on the number and U rows) are six parallel slot columns:
 
 | Row             | Action                                            |
 | --------------- | ------------------------------------------------- |
-| F1..F12         | Play slot 1..12 with the original recorded delays |
-| 1..=            | Play slot 1..12 instantly (no delays)             |
-| Q..]            | Record (if empty) / Save (if recording this slot) / Delete (if occupied) |
+| F7..F12         | Play slot 1..6 with the original recorded delays  |
+| 7..=            | Play slot 1..6 instantly (no delays)              |
+| U..]            | Record (if empty) / Save (if recording this slot) / Delete (if occupied) |
 | Esc             | Cancel the current recording (no save)            |
 
 Slot colors (all scaled by the RGB matrix brightness):
 
-- **Empty slot**: only the Q-row record key is lit, in white. F-row and
+- **Empty slot**: only the U-row record key is lit, in white. F-row and
   number-row keys are **not overpainted** - the active RGB matrix effect
   (solid reactive, etc.) keeps running there.
 - **Occupied slot**: F-row = yellow (play delayed), number row = green
-  (play instant), Q-row = red (erase).
-- **Currently recording into this slot**: only the Q-row key blinks red;
+  (play instant), U-row = red (erase).
+- **Currently recording into this slot**: only the U-row key blinks red;
   the play-row keys are left to the matrix effect.
 - **Currently playing this slot**: the corresponding play key (F-row for
   delayed, number row for instant) pulses brighter; other keys stay at
@@ -130,15 +131,15 @@ Side LEDs:
 
 Recording flow:
 
-1. Hold Right Ctrl, press a Q-row key for an **empty** (white) slot. Side
+1. Hold Right Ctrl, press a U-row key for an **empty** (white) slot. Side
    LEDs go red.
-2. Release Right Ctrl and type normally. Up to **64 events** are captured
+2. Release Right Ctrl and type normally. Up to **128 events** are captured
    per slot (press and release are separate events). Delays between events
    are recorded to the nearest 10ms. **Any key event that fires while
    the macro layer is active is NOT recorded** (including the Right Ctrl
    activator itself), so toggling the macro layer is safe.
-3. Press Right Ctrl + the same Q-row key to **save**, or Right Ctrl + Esc to
-   **cancel**. The slot is auto-saved if it hits 64 events.
+3. Press Right Ctrl + the same U-row key to **save**, or Right Ctrl + Esc to
+   **cancel**. The slot is auto-saved if it hits 128 events.
 
 Playback uses `register_code16`/`unregister_code16` for each event, and
 calls `rgb_matrix_handle_key_event` so reactive RGB effects (Solid
@@ -146,11 +147,10 @@ Reactive, Splash, etc.) light up the original physical keys as the macro
 plays. Instant mode still leaves a 1ms gap between events so the OS
 doesn't drop them.
 
-Persistence: each slot occupies **260 bytes** in the user data block (4
-byte header + 64 × 4-byte events). `EECONFIG_USER_DATA_SIZE` is set to
-**3200** in `config.h` to fit user_config + 12 slots + headroom. Because
-this exceeds the default 4 KB emulated EEPROM, `config.h` also bumps
-`FEE_DENSITY_BYTES` to **6144** (2 KB write log remaining).
+Persistence: each slot occupies **516 bytes** in the user data block (4
+byte header + 128 × 4-byte events). Six slots use **3112 bytes** total
+(user_config + padding + slots). `EECONFIG_USER_DATA_SIZE` remains **3200**
+in `config.h` (same as before — fewer slots offset the larger per-slot size).
 `user_config_save()` / `user_config_load()` in `utils.c` do **partial**
 writes covering only their own 8 bytes so they don't trample the macro
 region.
@@ -426,7 +426,7 @@ VIA_ENABLE = yes
 ```c
 #define FEE_DENSITY_BYTES           6144   /* up from default 4096 */
 #define EECONFIG_USER_DATA_SIZE     3200
-#define EECONFIG_USER_DATA_VERSION  0x1A75C002
+#define EECONFIG_USER_DATA_VERSION  0x1A75C003
 #define DYNAMIC_KEYMAP_LAYER_COUNT  7
 ```
 
@@ -442,18 +442,18 @@ Within the user data block:
 | ----------- | ---- | ----------------------------------------- |
 | 0..7        | 8    | `user_config_t` (side mode, sleep, etc.)  |
 | 8..15       | 8    | padding                                   |
-| 16..275     | 260  | macro slot 0                              |
-| 276..535    | 260  | macro slot 1                              |
+| 16..531     | 516  | macro slot 0 (F7 column)                  |
+| 532..1047   | 516  | macro slot 1 (F8 column)                  |
 | ...         | ...  | ...                                       |
-| 2876..3135  | 260  | macro slot 11                             |
-| 3136..3199  | 64   | headroom                                  |
+| 2588..3103  | 516  | macro slot 5 (F12 column)                 |
+| 3104..3199  | 96   | headroom                                  |
 
 Total EEPROM map (6144 bytes):
 
 | Region             | Bytes | Notes                                  |
 | ------------------ | ----- | -------------------------------------- |
-| EECONFIG base      | ~30   | layer state, RGB matrix config, etc.   |
-| User data block    | 3200  | user_config + 12 × 260-byte macro slots |
+| EECONFIG base      | ~36   | layer state, RGB matrix config, etc.   |
+| User data block    | 3200  | user_config + 6 × 516-byte macro slots |
 | Dynamic keymap     | 1344  | 7 layers × 6 rows × 16 cols × 2 bytes  |
 | VIA dynamic macros | ~1570 | leftover (unused; we have our own)     |
 
