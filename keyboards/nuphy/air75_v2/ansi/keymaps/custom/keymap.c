@@ -53,7 +53,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
      * Layer 0 - Mac base
      * ==================================================================== */
     [MAC_BASE_LAYER] = LAYOUT_ansi_84(
-        KC_ESC,     KC_BRID,    KC_BRIU,    MAC_TASK,   MAC_SEARCH, MAC_VOICE,  MAC_DND,    KC_MPRV,    KC_MPLY,    KC_MNXT,    KC_MUTE,    KC_VOLD,    KC_VOLU,    MAC_PRTA,   KC_INS,     KC_DEL,
+        KC_ESC,     KC_F1,      KC_F2,      KC_F3,      KC_F4,      KC_F5,      KC_F6,      KC_F7,      KC_F8,      KC_F9,      KC_F10,     KC_F11,     KC_F12,     MAC_PRTA,   KC_INS,     KC_DEL,
         KC_GRV,     KC_1,       KC_2,       KC_3,       KC_4,       KC_5,       KC_6,       KC_7,       KC_8,       KC_9,       KC_0,       KC_MINS,    KC_EQL,     KC_BSPC,                VIM_TOGGLE,
         KC_TAB,     KC_Q,       KC_W,       KC_E,       KC_R,       KC_T,       KC_Y,       KC_U,       KC_I,       KC_O,       KC_P,       KC_LBRC,    KC_RBRC,    KC_BSLS,                KC_F13,
         MO(L_VIM),  KC_A,       KC_S,       KC_D,       KC_F,       KC_G,       KC_H,       KC_J,       KC_K,       KC_L,       KC_SCLN,    KC_QUOT,    KC_ENT,                             KC_F14,
@@ -63,14 +63,33 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
     /* ====================================================================
      * Layer 1 - Mac Fn
-     *   Fn + Del : MO(L_CFG)
-     *   Fn + 1..4: LNK_BLE1..3 + LNK_RF
-     *   Fn + Q..]: F13..F24
-     *   Fn + B   : BAT_NUM
-     * Everything else falls through (so Fn + Shift, Fn + media still work).
+     *
+     * Mac base now has plain F1..F12 on the F-row (same as Win base).
+     * Holding Fn turns those positions into Mac media / brightness / system
+     * controls (BRID, BRIU, MAC_TASK, MAC_SEARCH, MAC_VOICE, MAC_DND,
+     * MPRV, MPLY, MNXT, MUTE, VOLD, VOLU) - the original NuPhy F-row.
+     *
+     *   Fn + F1   : KC_BRID
+     *   Fn + F2   : KC_BRIU
+     *   Fn + F3   : MAC_TASK
+     *   Fn + F4   : MAC_SEARCH
+     *   Fn + F5   : MAC_VOICE
+     *   Fn + F6   : MAC_DND
+     *   Fn + F7   : KC_MPRV
+     *   Fn + F8   : KC_MPLY
+     *   Fn + F9   : KC_MNXT
+     *   Fn + F10  : KC_MUTE
+     *   Fn + F11  : KC_VOLD
+     *   Fn + F12  : KC_VOLU
+     *   Fn + Del  : MO(L_CFG)
+     *   Fn + PgUp : VIM_LOCK
+     *   Fn + 1..4 : LNK_BLE1..3 + LNK_RF
+     *   Fn + Q..] : F13..F24
+     *   Fn + B    : BAT_NUM
+     * Everything else falls through (so Fn + Shift etc. still work).
      * ==================================================================== */
     [MAC_FN_LAYER] = LAYOUT_ansi_84(
-        _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    MO(L_CFG),
+        _______,    KC_BRID,    KC_BRIU,    MAC_TASK,   MAC_SEARCH, MAC_VOICE,  MAC_DND,    KC_MPRV,    KC_MPLY,    KC_MNXT,    KC_MUTE,    KC_VOLD,    KC_VOLU,    _______,    _______,    MO(L_CFG),
         _______,    LNK_BLE1,   LNK_BLE2,   LNK_BLE3,   LNK_RF,     _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,                VIM_LOCK,
         _______,    KC_F13,     KC_F14,     KC_F15,     KC_F16,     KC_F17,     KC_F18,     KC_F19,     KC_F20,     KC_F21,     KC_F22,     KC_F23,     KC_F24,     _______,                _______,
         _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,                            _______,
@@ -91,10 +110,30 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     ),
 
     /* ====================================================================
-     * Layer 3 - Win Fn (same template as Mac Fn)
+     * Layer 3 - Win Fn
+     *
+     * Win base has actual F1..F12 on the F-row. Holding Fn swaps those
+     * positions to media / brightness controls (mirror of how Mac base
+     * shows media and Mac Fn shows F-keys).
+     *
+     *   Fn + F1   : KC_BRID   (brightness down)
+     *   Fn + F2   : KC_BRIU   (brightness up)
+     *   Fn + F7   : KC_MPRV
+     *   Fn + F8   : KC_MPLY
+     *   Fn + F9   : KC_MNXT
+     *   Fn + F10  : KC_MUTE
+     *   Fn + F11  : KC_VOLD
+     *   Fn + F12  : KC_VOLU
+     *   Fn + Del  : MO(L_CFG)
+     *   Fn + PgUp : VIM_LOCK
+     *   Fn + 1..4 : LNK_BLE1..3 + LNK_RF
+     *   Fn + Q..] : F13..F24
+     *   Fn + B    : BAT_NUM
+     * F3..F6 left transparent (no good cross-platform equivalent of the
+     * Mac-specific MAC_TASK / SEARCH / VOICE / DND keys).
      * ==================================================================== */
     [WIN_FN_LAYER] = LAYOUT_ansi_84(
-        _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    MO(L_CFG),
+        _______,    KC_BRID,    KC_BRIU,    _______,    _______,    _______,    _______,    KC_MPRV,    KC_MPLY,    KC_MNXT,    KC_MUTE,    KC_VOLD,    KC_VOLU,    _______,    _______,    MO(L_CFG),
         _______,    LNK_BLE1,   LNK_BLE2,   LNK_BLE3,   LNK_RF,     _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,                VIM_LOCK,
         _______,    KC_F13,     KC_F14,     KC_F15,     KC_F16,     KC_F17,     KC_F18,     KC_F19,     KC_F20,     KC_F21,     KC_F22,     KC_F23,     KC_F24,     _______,                _______,
         _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,                            _______,

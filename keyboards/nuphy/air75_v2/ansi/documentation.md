@@ -43,6 +43,13 @@ Notable keymap changes (apply to both Mac and Win):
   in the OS (window managers, app shortcuts, etc.).
 - **Fn + PgUp position** (the same key as the new `VIM_TOGGLE`) is
   `VIM_LOCK` - hard-disables vim mode until pressed again.
+- **F-row**: both Mac and Win base layers have plain `KC_F1..F12` on the
+  function row. Holding `Fn` swaps those to system / media controls:
+  - Mac Fn: full set - `BRID, BRIU, MAC_TASK, MAC_SEARCH, MAC_VOICE,
+    MAC_DND, MPRV, MPLY, MNXT, MUTE, VOLD, VOLU` (original NuPhy F-row).
+  - Win Fn: subset - `BRID, BRIU, _, _, _, _, MPRV, MPLY, MNXT, MUTE,
+    VOLD, VOLU` (F3..F6 left transparent because the Mac-specific
+    keycodes for those positions don't map cleanly to Windows).
 - Short layer aliases (`L_MAC`, `L_MFN`, `L_WIN`, `L_WFN`, `L_VIM`,
   `L_CFG`, `L_MCR`) are defined in `layers.h` / `macros.h` so `MO()`
   calls stay compact and the keymap columns can align cleanly.
