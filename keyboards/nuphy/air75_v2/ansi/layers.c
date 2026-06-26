@@ -22,6 +22,7 @@
 #include "layers.h"
 #include "utils.h"
 #include "macros.h"
+#include "user.h"
 #include <string.h>
 
 #define SIDE_BOTH(R, G, B)                                                                 \
@@ -92,16 +93,20 @@ static const key_color_t PROGMEM fn_layer_keys[] = {
 };
 
 /* ---- Vim navigation layer (4) ----
- * Highlight the hjkl arrow cluster.
+ * hjkl cluster: all cyan at rest; Left Alt always green on this layer.
+ * H/L turn green while Alt HL-mode is active (Home/End).
  */
-#define VIM_NAV_R 0x00
-#define VIM_NAV_G 0x80
-#define VIM_NAV_B 0xFF
+#define VIM_NAV_CY_R 0x00
+#define VIM_NAV_CY_G 0x80
+#define VIM_NAV_CY_B 0xFF
+#define VIM_NAV_GRN_R 0x20
+#define VIM_NAV_GRN_G 0xFF
+#define VIM_NAV_GRN_B 0x60
 static const key_color_t PROGMEM vim_nav_layer_keys[] = {
-    {3, 6, VIM_NAV_R, VIM_NAV_G, VIM_NAV_B}, /* h */
-    {3, 7, VIM_NAV_R, VIM_NAV_G, VIM_NAV_B}, /* j */
-    {3, 8, VIM_NAV_R, VIM_NAV_G, VIM_NAV_B}, /* k */
-    {3, 9, VIM_NAV_R, VIM_NAV_G, VIM_NAV_B}, /* l */
+    {3, 6, VIM_NAV_CY_R, VIM_NAV_CY_G, VIM_NAV_CY_B}, /* h (LAlt: Home) */
+    {3, 7, VIM_NAV_CY_R, VIM_NAV_CY_G, VIM_NAV_CY_B}, /* j */
+    {3, 8, VIM_NAV_CY_R, VIM_NAV_CY_G, VIM_NAV_CY_B}, /* k */
+    {3, 9, VIM_NAV_CY_R, VIM_NAV_CY_G, VIM_NAV_CY_B}, /* l (LAlt: End) */
 };
 
 /* ---- Config layer (5) - RGB matrix + side LED + system ----
@@ -173,6 +178,27 @@ static inline uint8_t base_layer(void) {
     return get_highest_layer(default_layer_state);
 }
 
+static void vim_nav_paint_lalt(uint8_t v) {
+    uint8_t base = base_layer();
+    for (uint8_t c = 0; c < MATRIX_COLS; c++) {
+        if (keymap_key_to_keycode(base, (keypos_t){.row = 5, .col = c}) != KC_LALT) {
+            continue;
+        }
+        set_key_rgb(5, c, scale8(VIM_NAV_GRN_R, v), scale8(VIM_NAV_GRN_G, v), scale8(VIM_NAV_GRN_B, v));
+    }
+}
+
+static void vim_nav_render_modifiers(uint8_t v) {
+    vim_nav_paint_lalt(v);
+
+    if (!vim_nav_lalt_held()) {
+        return;
+    }
+
+    set_key_rgb(3, 6, scale8(VIM_NAV_GRN_R, v), scale8(VIM_NAV_GRN_G, v), scale8(VIM_NAV_GRN_B, v));
+    set_key_rgb(3, 9, scale8(VIM_NAV_GRN_R, v), scale8(VIM_NAV_GRN_G, v), scale8(VIM_NAV_GRN_B, v));
+}
+
 void layer_overlay_render_keys(void) {
     uint8_t cur  = current_layer();
     uint8_t base = base_layer();
@@ -211,6 +237,10 @@ void layer_overlay_render_keys(void) {
         uint16_t kc = keymap_key_to_keycode(cur, (keypos_t){.row = k.row, .col = k.col});
         if (kc == KC_NO || kc == KC_TRNS) continue;
         set_key_rgb(k.row, k.col, scale8(k.r, v), scale8(k.g, v), scale8(k.b, v));
+    }
+
+    if (cur == VIM_NAV_LAYER) {
+        vim_nav_render_modifiers(v);
     }
 }
 

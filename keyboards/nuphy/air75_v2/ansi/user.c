@@ -10,10 +10,99 @@
 bool     vim_locked_disabled = false;
 uint16_t vim_j_last_pressed  = 0;
 
+static bool vim_nav_lalt_active = false;
+
+bool vim_nav_lalt_held(void) {
+    return vim_nav_lalt_active;
+}
+
+static bool is_base_lalt_key(keyrecord_t *record) {
+    uint8_t base = get_highest_layer(default_layer_state);
+    return keymap_key_to_keycode(base, record->event.key) == KC_LALT;
+}
+
+/* Left Alt on the vim nav layer is local-only: it toggles HL Home/End mode
+ * and must never reach the host. */
+static bool vim_nav_lalt_swallow(uint16_t keycode, keyrecord_t *record) {
+    if (!IS_LAYER_ON(VIM_NAV_LAYER)) {
+        if (!record->event.pressed) {
+            vim_nav_lalt_active = false;
+        }
+        return false;
+    }
+
+    if (keycode != KC_LALT || !is_base_lalt_key(record)) {
+        return false;
+    }
+
+    vim_nav_lalt_active = record->event.pressed;
+    return true;
+}
+
+static void vim_nav_strip_host_lalt(void) {
+    if (!IS_LAYER_ON(VIM_NAV_LAYER)) {
+        return;
+    }
+
+    uint8_t mods = get_mods();
+    if (mods & MOD_LALT) {
+        set_mods(mods & ~MOD_LALT);
+    }
+
+    uint8_t oneshot = get_oneshot_mods();
+    if (oneshot & MOD_LALT) {
+        set_oneshot_mods(oneshot & ~MOD_LALT);
+    }
+}
+
+/* Left Alt on the hjkl nav layer maps H/L to Home/End. Shift is preserved
+ * so Alt+Shift+H behaves like Shift+Home. */
+static bool vim_nav_alt_home_end(uint16_t keycode, keyrecord_t *record) {
+    if (!IS_LAYER_ON(VIM_NAV_LAYER) || !vim_nav_lalt_active) {
+        return false;
+    }
+
+    keypos_t key = record->event.key;
+    bool     is_h = (key.row == 3 && key.col == 6 && keycode == KC_LEFT);
+    bool     is_l = (key.row == 3 && key.col == 9 && keycode == KC_RGHT);
+    if (!is_h && !is_l) {
+        return false;
+    }
+
+    const uint8_t  saved_mods    = get_mods();
+    const uint8_t  saved_oneshot = get_oneshot_mods();
+    const uint8_t  shift_only    = (saved_mods | saved_oneshot) & MOD_MASK_SHIFT;
+    const uint8_t  target        = is_h ? KC_HOME : KC_END;
+    const uint16_t out           = shift_only ? (uint16_t)LSFT(target) : target;
+
+    clear_mods();
+    clear_oneshot_mods();
+
+    if (record->event.pressed) {
+        register_code16(out);
+    } else {
+        unregister_code16(out);
+    }
+
+    set_mods(saved_mods);
+    set_oneshot_mods(saved_oneshot);
+    return true;
+}
+
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     /* Macro layer / recording capture has top priority. If it consumed the
      * event we stop processing. */
     if (macro_process_record(keycode, record)) {
+        return false;
+    }
+
+    if (vim_nav_lalt_swallow(keycode, record)) {
+        return false;
+    }
+
+    vim_nav_strip_host_lalt();
+
+    if (vim_nav_alt_home_end(keycode, record)) {
         return false;
     }
 
