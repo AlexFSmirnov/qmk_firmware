@@ -4,6 +4,7 @@
 #include "utils.h"
 #include "layers.h"
 #include "macros.h"
+#include "rgb_matrix.h"
 #include "qmk-vim/src/vim.h"
 #include "qmk-vim/src/modes.h"
 
@@ -89,10 +90,69 @@ static bool vim_nav_alt_home_end(uint16_t keycode, keyrecord_t *record) {
     return true;
 }
 
+static uint16_t rgb_hue_repeat_key   = 0;
+static uint16_t rgb_hue_repeat_timer = 0;
+static bool     rgb_hue_repeat_first = false;
+
+static void rgb_hue_step(uint16_t keycode) {
+    const uint8_t shifted = (get_mods() | get_oneshot_mods()) & MOD_MASK_SHIFT;
+
+    if (keycode == RGB_HUI) {
+        if (shifted) {
+            rgb_matrix_decrease_hue();
+        } else {
+            rgb_matrix_increase_hue();
+        }
+    } else if (keycode == RGB_HUD) {
+        if (shifted) {
+            rgb_matrix_increase_hue();
+        } else {
+            rgb_matrix_decrease_hue();
+        }
+    }
+}
+
+/* RGB_HUI / RGB_HUD: one step on press, then repeat while held. */
+static bool rgb_hue_repeat_process(uint16_t keycode, keyrecord_t *record) {
+    if (keycode != RGB_HUI && keycode != RGB_HUD) {
+        return false;
+    }
+
+    if (record->event.pressed) {
+        rgb_hue_step(keycode);
+        rgb_hue_repeat_key   = keycode;
+        rgb_hue_repeat_timer = timer_read();
+        rgb_hue_repeat_first = true;
+    } else if (rgb_hue_repeat_key == keycode) {
+        rgb_hue_repeat_key = 0;
+    }
+
+    return true;
+}
+
+static void rgb_hue_repeat_task(void) {
+    if (!rgb_hue_repeat_key) {
+        return;
+    }
+
+    const uint16_t threshold = rgb_hue_repeat_first ? RGB_HUE_REPEAT_DELAY_MS : RGB_HUE_REPEAT_INTERVAL_MS;
+    if (timer_elapsed(rgb_hue_repeat_timer) < threshold) {
+        return;
+    }
+
+    rgb_hue_step(rgb_hue_repeat_key);
+    rgb_hue_repeat_timer = timer_read();
+    rgb_hue_repeat_first = false;
+}
+
 bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     /* Macro layer / recording capture has top priority. If it consumed the
      * event we stop processing. */
     if (macro_process_record(keycode, record)) {
+        return false;
+    }
+
+    if (rgb_hue_repeat_process(keycode, record)) {
         return false;
     }
 
@@ -185,6 +245,7 @@ bool process_insert_mode_user(uint16_t keycode, keyrecord_t *record) {
 
 void housekeeping_task_user(void) {
     macro_task();
+    rgb_hue_repeat_task();
 }
 
 static void rgb_matrix_vim_mode(void) {

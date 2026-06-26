@@ -52,8 +52,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define RGB_MATRIX_DEFAULT_MODE             RGB_MATRIX_SOLID_REACTIVE
 #define RGB_MATRIX_SLEEP
 
-/* Halve the hue step (default 8) so RGB_HUI / RGB_HUD give finer control. */
-#define RGB_MATRIX_HUE_STEP                 4
+/* Quarter of the default hue step (8) so RGB_HUI / RGB_HUD give fine control. */
+#define RGB_MATRIX_HUE_STEP                 2
+
+/* Hold-to-repeat timing for RGB_HUI / RGB_HUD (ms). */
+#define RGB_HUE_REPEAT_DELAY_MS             300
+#define RGB_HUE_REPEAT_INTERVAL_MS          50
 
 #define WS2812_TIMING       850
 #define WS2812_T1H          700

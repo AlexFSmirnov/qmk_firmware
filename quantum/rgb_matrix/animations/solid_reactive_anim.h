@@ -7,10 +7,12 @@ static HSV SOLID_REACTIVE_math(HSV hsv, uint16_t offset) {
 #            ifdef RGB_MATRIX_SOLID_REACTIVE_GRADIENT_MODE
     hsv.h = scale16by8(g_rgb_timer, qadd8(rgb_matrix_config.speed, 8) >> 4);
 #            endif
-    /* Rest: full configured H/S/V. On press: snap to white (S=0), then
-     * animate saturation back up to the rest colour as offset increases. */
-    uint8_t off = (offset > 255) ? 255 : (uint8_t)offset;
-    hsv.s         = scale8(off, hsv.s);
+    /* Rest: full configured H/S/V. On press: desaturate toward min(120, S),
+     * then animate back to the rest colour as offset increases. */
+    uint8_t rest_s = hsv.s;
+    uint8_t min_s  = rest_s < 120 ? rest_s : 120;
+    uint8_t off    = (offset > 255) ? 255 : (uint8_t)offset;
+    hsv.s          = min_s + scale8(off, rest_s - min_s);
     return hsv;
 }
 
