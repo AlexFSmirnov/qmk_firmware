@@ -14,6 +14,8 @@ affected (plus two small upstream RGB animation tweaks).
 | `macros.c` / `macros.h`                    | Runtime-recordable macros (12 slots, EEPROM-persisted)    |
 | `qmk-vim/`                                 | Vendored [andrewjrae/qmk-vim](https://github.com/andrewjrae/qmk-vim) |
 | `keymaps/custom/`                          | Single source-of-truth keymap (VIA-enabled)               |
+| `rf_queue.c` / `rf_queue.h`                | 64-slot circular buffer for HID reports while RF is reconnecting (ported from [jincao1/qmk_firmware](https://github.com/jincao1/qmk_firmware)) |
+| `mcu_pwr.c` / `mcu_pwr.h` / `mcu_stm32f0xx.h` | STM32F072 deep/light-sleep + LED rail power gating (ported from jincao1) |
 | `documentation.md`                         | This file                                                 |
 
 Build with `qmk compile -kb nuphy/air75_v2/ansi -km custom`.
@@ -290,6 +292,114 @@ Behaviour in `user.c`:
 - `LINK_TIMEOUT` reduced to 2 minutes; `SLEEP_TIME_DELAY` extended to 1 hour.
 - `process_record_kb` resets `no_act_time` *before* delegating to
   `process_record_user` (so user-handled keys still count as activity).
+- See **RF stability + power port** below for the deep-sleep + LED rail
+  gating logic.
+
+## RF stability + power port (from jincao1/qmk_firmware)
+
+Most of this section is a selective port of the bug-fix half of
+[jincao1/qmk_firmware](https://github.com/jincao1/qmk_firmware) (his
+`air75v2-sleep` branch). All keymap and indicator customizations from
+that fork were intentionally **skipped**; only the reliability and
+battery-life work was brought over, and adapted to our `user_config_t`
+and `user.c` layout. Files touched: `rf.c`, `rf_driver.c`, `ansi.{c,h}`,
+`sleep.c`, `side.c`, `side_table.h`, `rules.mk`, `keyboard.json`, and
+the four new files listed in the file map.
+
+### Lost keys on wake / reconnect — `rf_queue.{c,h}`
+
+- 64-slot circular buffer of `report_buffer_t` (`cmd` + 32-byte payload
+  + length). `rf_driver.c::send_or_queue()` decides per-report whether
+  to push straight onto UART or queue. While the RF link is down or the
+  receiver hasn't ACKed, every HID report (keyboard, NKRO, mouse,
+  extras) is enqueued instead of dropped.
+- `uart_send_repeat_from_queue()` (in `rf.c`) drains the queue once the
+  link comes back, in order, so a wake-up burst of keystrokes replays
+  cleanly instead of being lost.
+- `clear_report_buffer_and_queue()` is called from `break_all_key()` so
+  a link switch (USB ↔ RF ↔ BT) doesn't keep replaying a stale held-key
+  report after the switch.
+- Buffer cost: ~1.2 KB of RAM. This is why `side_table.h` was trimmed
+  (see below) — the F072 only has 16 KB of SRAM.
+
+### Retransmission + UART race fix — `rf.c`
+
+- Last keyboard / NKRO report is cached in `report_buff_a` /
+  `report_buff_b` and re-sent on an adaptive interval
+  (`get_repeat_interval()`) until activity stops, hardening against the
+  RF dongle dropping a single packet (the most common cause of stuck or
+  lost keys).
+- `uart_send_bytes()` rate-limits to ≤1 command/ms and stamps
+  `Usart_Mgr.TXLastCmdTm`. `uart_receive_pro()` waits for the full RX
+  burst and ignores frames that arrive while we're mid-TX, so the
+  MCU↔RF UART can't desync (the underlying cause of the random
+  wireless freezes).
+- `rf_protocol_receive()` validates `RX_LEN` and checksum and drops bad
+  frames instead of feeding them into the state machine.
+- `dev_sts_sync()` no longer issues `CMD_SET_24G_NAME` on every sync
+  pass (it ran on a 50 ms timer and was a steady source of UART
+  contention).
+
+### Sleep + LED power gating — `mcu_pwr.{c,h}`, `mcu_stm32f0xx.h`, `sleep.c`
+
+- `enter_deep_sleep()` puts the STM32F0 into `PWR_EnterSTOPMode` after
+  cutting power to the LED rails (`pwr_rgb_led_off` /
+  `pwr_side_led_off`). EXTI on the matrix wakes it back up.
+- `enter_light_sleep()` only kills the LED rails (MCU stays awake) and
+  is used in two cases where deep sleep is unsafe:
+  - **USB connected** — wakeup from STOP mode tends to upset the USB
+    PHY; we'd rather burn a few mA than crash the link.
+  - **Wirelessly charging** — the charge controller's wake pulses
+    would otherwise bounce us in and out of STOP repeatedly.
+- `rgb_led_last_act` / `side_led_last_act` activity counters are bumped
+  every ms in `timer_pro()` and reset in `pre_process_record_kb()`. The
+  `led_power_handle()` call in `rgb_matrix_indicators_kb` cuts the LED
+  driver when idle, regardless of whether the MCU is sleeping. This is
+  the change responsible for most of the battery-life improvement on
+  the jincao1 fork.
+- `pre_process_record_kb()` runs the wake-up handoff (`f_wakeup_prepare`
+  → `exit_light_sleep`) *before* QMK does anything else with the
+  keystroke, so the first key after wake registers normally.
+
+### Other touched files
+
+- `rf_driver.c`: routes through `send_or_queue()`, force-sets
+  `keyboard_protocol = 1` for NKRO before each report so the host
+  doesn't snap back to boot protocol after a reconnect.
+- `ansi.c`:
+  - `gpio_init()` and `device_reset_show()` use the new
+    `pwr_rgb_led_on()` / `pwr_side_led_on()` helpers so the activity
+    counters and rail state stay in sync with reality.
+  - `housekeeping_task_kb()` calls `uart_send_report_repeat()` instead
+    of the old one-shot `uart_send_report_func()`.
+  - Vendor-patched `uart_send_*_report()` hooks in `tmk_core/protocol/host.c`
+    are stubbed as no-ops (the new flow already does the right thing
+    inside `rf_driver.c`).
+- `side.c`: `flush_side_leds` flag + `side_leds_all_zero()` skip the
+  DMA push when nothing changed; refresh interval tightened from 30 ms
+  to 10 ms for smoother indicator animations now that the push is
+  cheap; `device_reset_show()` / `rgb_test_show()` go through the
+  power helpers.
+- `side_table.h`:
+  - dropped `light_value_tab` entirely (−256 B);
+  - shrank `breathe_data_tab` 256 → 128 entries (−128 B) and
+    `wave_data_tab` 256 → 112 entries (−144 B) to match actual usage;
+  - reduced `FLOW_COLOUR_TAB_LEN` 512 → 224.
+  - Combined, this just about pays for the RF queue.
+- `keyboard.json`: `debounce` 2 → 3 (a known stability win on the
+  V2 matrix); `rgb_matrix.sleep = true` for the new sleep path.
+- `rules.mk`: adds `mcu_pwr.c` and `rf_queue.c` to `SRC`, and enables
+  `LTO_ENABLE = yes` (drops ~5 KB of flash, which we need to fit the
+  RF queue + retransmission paths).
+
+### What was intentionally NOT ported from jincao1
+
+- All keymap and `process_record_*` keymap-side behaviour (we keep our
+  own keymap, vim, macros, layer overlays).
+- The custom battery / sleep-mode indicators on F-row, number row, and
+  side LEDs.
+- The split `kb_config_t` / `user_kb.c` layout — our `user_config_t` /
+  `user.c` setup is kept and `mcu_pwr.c` was adapted to use it.
 
 ## Build
 
@@ -297,7 +407,10 @@ Behaviour in `user.c`:
 
 ```
 include $(KEYBOARD_PATH_1)/qmk-vim/rules.mk
-SRC += side.c rf.c sleep.c side_driver.c rf_driver.c user.c utils.c layers.c macros.c
+SRC += side.c rf.c sleep.c side_driver.c rf_driver.c \
+       user.c utils.c layers.c macros.c \
+       mcu_pwr.c rf_queue.c
+LTO_ENABLE = yes
 ```
 
 `keymaps/custom/rules.mk` enables VIA:
@@ -354,5 +467,8 @@ also wiped).
   lists all `QK_KB_n` entries from `ansi.h` *in order*. New keycodes
   (`SIDE_RMOD`, `SIDE_HUD`) are appended at the end of the enum (NOT
   inserted in the middle) so existing VIA mappings stay stable.
-- `keyboard.json` is otherwise unchanged from upstream besides reformatting.
-- `rf.c` only has whitespace cleanup beyond the `no_act_time` type change.
+- `keyboard.json` deviates from upstream in three spots: VIA layout
+  + the `debounce` / `rgb_matrix.sleep` changes covered in the RF +
+  power port section.
+- `rf.c` has been substantially rewritten (queue + retransmission +
+  UART race fix). See the RF + power port section for the full story.

@@ -22,25 +22,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define	BREATHE_TAB_LEN			128
 #define	FLOW_COLOUR_TAB_LEN		224
 
-const uint8_t light_value_tab[256] =
-{
-	0,		22,		23,		24,
-	25,		26,		27,		28,		29,		30,		31,		32,
-	33,		34,		36,		37,		39,		40,		42,		43,
-	45,		47,		49,		51,		53,		55,		57,		59,
-	61,		63,		65,		67,		69,		71,		73,		75,
-	77,		79,		81,		83,		85,		87,		89,		91,
-	94,		96,		99,		101,	104, 	106,	109,	111,
-	114,	116,	119,	121,	124,	126,	129,	131,
-	134,	137,	140,	143,	146,	149,	152,	155,
-	158,	161,	164,	167,	170,	173,	176,	179,
-	182,	185,	188,	191,	194,	197,	200,	203,
-	206,	209,	213,	216,	220,	223,	227,	230,
-	234,	237,	241,	245,	248,	251,	255,	255,
-	255,
-};
+/* `light_value_tab` was a 256-byte table that no code path in
+ * air75_v2/ansi actually references. Dropped to free RAM/flash (the
+ * board only has 16KB SRAM and the rf_queue alone takes ~1.2KB). */
 
-const uint8_t breathe_data_tab[256]=
+const uint8_t breathe_data_tab[BREATHE_TAB_LEN]=
 {
 	0,		1,		2,		3,		4,		5,		6,		7,
 	8,		9,		10,		12,		14,		16,		18,		20,
@@ -61,7 +47,7 @@ const uint8_t breathe_data_tab[256]=
 	7,		6,		5,		4,		3,		2,		1,		0,
 };
 
-const uint8_t wave_data_tab[256]=
+const uint8_t wave_data_tab[WAVE_TAB_LEN]=
 {
 	22,		23,		24,		25,		27,		28,		30,		31,
 	33,		34,		36,		37,		39,		40,		42,		43,

@@ -84,8 +84,12 @@ typedef enum {
 #define RF_DISCONNECT           4
 #define RF_SLEEP                5
 #define RF_SNIF                 6
+/* Synthetic state set by mcu_pwr.c when waking from light/deep sleep so
+ * that rf.c knows to re-handshake and to flush the queued reports. */
+#define RF_WAKE                 0XA5
 #define RF_INVALID              0XFE
 #define RF_ERR_STATE            0XFF
+#define CMD_NULL                0X00 /* sentinel for Usart_Mgr.RXCmd */
 
 #define CMD_POWER_UP            0XF0
 #define CMD_SLEEP               0XF1
@@ -146,13 +150,15 @@ typedef enum {
 
 typedef struct
 {
-    uint8_t RXDState;
-    uint8_t RXDLen;
-    uint8_t RXDOverTime;
-    uint8_t TXDLenBack;
-    uint8_t TXDOffset;
-    uint8_t TXDBuf[UART_MAX_LEN];
-    uint8_t RXDBuf[UART_MAX_LEN];
+    uint8_t  RXDState;
+    uint8_t  RXDLen;
+    uint8_t  RXDOverTime;
+    uint8_t  TXDLenBack;
+    uint8_t  TXDOffset;
+    uint8_t  RXCmd;       /* last received CMD byte (for ACK matching)   */
+    uint32_t TXLastCmdTm; /* timer_read32() of last uart_send_bytes call */
+    uint8_t  TXDBuf[UART_MAX_LEN];
+    uint8_t  RXDBuf[UART_MAX_LEN];
 } USART_MGR_STRUCT;
 
 typedef struct
@@ -179,3 +185,16 @@ typedef struct
     uint8_t retain1;
     uint8_t retain2;
 } user_config_t;
+
+/* ---- ports for jincao1 fork's RF retransmission / wake-queue path ----
+ *
+ * `report_buffer_t` itself lives in rf_queue.h (struct + queue API are
+ * defined together). Anything that needs the type should include that
+ * header directly. */
+
+void clear_report_buffer(void);
+void clear_report_buffer_and_queue(void);
+void uart_send_report_repeat(void);
+
+void uart_send_bytes(uint8_t *Buffer, uint32_t Length);
+uint8_t uart_send_cmd(uint8_t cmd, uint8_t ack_cnt, uint8_t delayms);

@@ -18,6 +18,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "ansi.h"
 #include "side_table.h"
 #include "utils.h"
+#include "mcu_pwr.h"
+
+/* Track whether `side_leds` has changed since the last DMA flush. Saves
+ * a (~1ms) WS2812 transaction every tick when nothing is changing. */
+static bool flush_side_leds = false;
+
+/* True when every entry in side_leds is zero. Used to skip the power-on
+ * when we're effectively just turning the side strip off. */
+static bool side_leds_all_zero(void);
+
+void side_rgb_set_color_all(uint8_t r, uint8_t g, uint8_t b);
 
 /* Doubled-precision brightness (0..10 instead of 0..5) and hue (0..15
  * instead of 0..7) so the SIDE_VAI/VAD and SIDE_HUI/HUD keys give finer
@@ -107,16 +118,44 @@ bool side_led_show_user(void);
  * @param  ...
  */
 void side_rgb_set_color(int index, uint8_t red, uint8_t green, uint8_t blue) {
+    if (side_leds[index].r != red || side_leds[index].g != green || side_leds[index].b != blue) {
+        flush_side_leds = true;
+    }
     side_leds[index].r = red;
     side_leds[index].g = green;
     side_leds[index].b = blue;
 }
 
+void side_rgb_set_color_all(uint8_t r, uint8_t g, uint8_t b) {
+    for (uint8_t i = 0; i < SIDE_LED_NUM; i++) {
+        side_rgb_set_color(i, r, g, b);
+    }
+}
+
+static bool side_leds_all_zero(void) {
+    for (uint8_t i = 0; i < SIDE_LED_NUM; i++) {
+        if (side_leds[i].r || side_leds[i].g || side_leds[i].b) return false;
+    }
+    return true;
+}
+
 /**
  * @brief  refresh side leds.
+ *
+ * Only powers the side strip back on if it actually has something to
+ * show; only pushes the DMA frame if a color changed since last refresh.
+ * Both are needed to make the LED auto-power-down code in mcu_pwr.c
+ * stable.
  */
 void side_rgb_refresh(void) {
+    if (!side_leds_all_zero()) {
+        side_led_last_act = 0;
+        pwr_side_led_on();
+    }
+    if (!flush_side_leds) return;
+    side_led_last_act = 0;
     side_ws2812_setleds(side_leds, SIDE_LED_NUM);
+    flush_side_leds = false;
 }
 
 /**
@@ -730,12 +769,8 @@ void bat_led_show(void) {
  * @brief  device_reset_show.
  */
 void device_reset_show(void) {
-
-    writePinHigh(DC_BOOST_PIN);
-    setPinOutput(DRIVER_SIDE_CS_PIN);
-    setPinOutput(DRIVER_LED_CS_PIN);
-    writePinLow(DRIVER_SIDE_CS_PIN);
-    writePinLow(DRIVER_LED_CS_PIN);
+    pwr_rgb_led_on();
+    pwr_side_led_on();
 
     for (int blink_cnt = 0; blink_cnt < 3; blink_cnt++) {
         rgb_matrix_set_color_all(0x10, 0x10, 0x10);
@@ -790,12 +825,8 @@ void device_reset_init(void) {
 */
 void rgb_test_show(void)
 {
-    // open power control
-    writePinHigh(DC_BOOST_PIN);
-    setPinOutput(DRIVER_LED_CS_PIN);
-    writePinLow(DRIVER_LED_CS_PIN);
-    setPinOutput(DRIVER_SIDE_CS_PIN);
-    writePinLow(DRIVER_SIDE_CS_PIN);
+    pwr_rgb_led_on();
+    pwr_side_led_on();
 
     // set test color
     rgb_matrix_set_color_all(0xFF, 0x00, 0x00);
@@ -884,7 +915,10 @@ void side_led_show(void) {
     sys_led_show();
     rf_led_show();
 
-    if (timer_elapsed32(side_refresh_time) > 30) {
+    /* Tightened refresh interval from 30ms to 10ms for smoother
+     * animations. `side_rgb_refresh` no-ops when no LED actually
+     * changed since the last call, so the extra cost is negligible. */
+    if (timer_elapsed32(side_refresh_time) > 10) {
         side_refresh_time = timer_read32();
         side_rgb_refresh();
     }

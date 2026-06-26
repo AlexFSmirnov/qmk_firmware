@@ -19,6 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "usb_main.h"
 #include "rf_driver.h"
 #include "utils.h"
+#include "mcu_pwr.h"
 
 user_config_t user_config;
 DEV_INFO_STRUCT dev_info = {
@@ -27,7 +28,9 @@ DEV_INFO_STRUCT dev_info = {
     .rf_state   = RF_IDLE,
 };
 
-bool f_uart_ack         = 0;
+/* RF/uart-state flags below moved to rf.c (the file that actually owns
+ * the protocol), removing the duplicate-symbol link errors picked up
+ * after the jincao1 rf.c port. */
 bool f_bat_hold         = 0;
 bool f_sys_show         = 0;
 bool f_sleep_show       = 0;
@@ -37,13 +40,6 @@ bool f_rf_sw_press      = 0;
 bool f_dev_reset_press  = 0;
 bool f_rgb_test_press   = 0;
 bool f_bat_num_show     = 0;
-bool f_rf_hand_ok       = 0;
-bool f_goto_sleep       = 0;
-bool f_rf_read_data_ok  = 0;
-bool f_rf_sts_sysc_ok   = 0;
-bool f_rf_new_adv_ok    = 0;
-bool f_rf_reset         = 0;
-bool f_wakeup_prepare   = 0;
 
 uint16_t       rf_linking_time       = 0;
 uint16_t       rf_link_show_time     = 0;
@@ -57,10 +53,14 @@ uint8_t        host_mode             = 0;
 host_driver_t *m_host_driver         = 0;
 
 extern bool               f_rf_new_adv_ok;
+extern bool               f_wakeup_prepare;
 extern report_keyboard_t *keyboard_report;
 extern report_nkro_t *nkro_report;
-extern uint8_t            bitkb_report_buf[32];
-extern uint8_t            bytekb_report_buf[8];
+/* `bitkb_report_buf` / `bytekb_report_buf` are now private statics in
+ * rf_driver.c (the auto-nkey packer owns its own pre-state). The
+ * `break_all_key()` zeroed-report writes below still reset the host's
+ * view of the keyboard; the packer detects the all-zero state on the
+ * next press and resyncs. */
 extern uint8_t            side_mode;
 extern uint8_t            side_light;
 extern uint8_t            side_speed;
@@ -70,9 +70,7 @@ extern uint8_t            side_colour;
 void    dev_sts_sync(void);
 void    rf_uart_init(void);
 void    rf_device_init(void);
-void    uart_send_report_func(void);
 void    uart_receive_pro(void);
-uint8_t uart_send_cmd(uint8_t cmd, uint8_t ack_cnt, uint8_t delayms);
 void    uart_send_report(uint8_t report_type, uint8_t *report_buf, uint8_t report_size);
 void    side_speed_control(uint8_t dir);
 void    side_light_control(uint8_t dir);
@@ -86,13 +84,14 @@ void    rgb_test_show(void);
 
 /**
  * @brief  gpio initial.
- */
+ *
+ * Goes through the mcu_pwr.c power helpers so the rgb / side LED
+ * "is_on" tracking flags stay accurate; otherwise the auto-power-down
+ * code in led_power_handle() would never turn the drivers back on. */
 void gpio_init(void) {
-    /* enable led power driver  */
-    setPinOutput(DRIVER_LED_CS_PIN);
-    setPinOutput(DRIVER_SIDE_CS_PIN);
-    writePinLow(DRIVER_LED_CS_PIN);
-    writePinLow(DRIVER_SIDE_CS_PIN);
+    /* power on the LED drivers (tracks state internally) */
+    pwr_rgb_led_on();
+    pwr_side_led_on();
     /* set side led pin output low */
     setPinOutput(DRIVER_SIDE_PIN);
     writePinLow(DRIVER_SIDE_PIN);
@@ -108,9 +107,6 @@ void gpio_init(void) {
     /* config dial switch pin */
     setPinInputHigh(DEV_MODE_PIN);
     setPinInputHigh(SYS_MODE_PIN);
-    /* open led DC driver */
-    setPinOutput(DC_BOOST_PIN);
-    writePinHigh(DC_BOOST_PIN);
 }
 
 /**
@@ -227,8 +223,9 @@ void break_all_key(void) {
         wait_ms(10);
     }
 
-    memset(bitkb_report_buf, 0, sizeof(bitkb_report_buf));
-    memset(bytekb_report_buf, 0, sizeof(bytekb_report_buf));
+    /* Also drop any retransmission state so we don't keep blasting a
+     * stale held-key report after a link switch. */
+    clear_report_buffer_and_queue();
 }
 
 /**
@@ -415,6 +412,9 @@ void timer_pro(void) {
     if (no_act_time < 0xffffffff) no_act_time++;
 
     if (rf_linking_time < 0xffff) rf_linking_time++;
+
+    if (rgb_led_last_act < 0xffff) rgb_led_last_act++;
+    if (side_led_last_act < 0xffff) side_led_last_act++;
 }
 
 /**
@@ -442,9 +442,23 @@ void londing_eeprom_data(void) {
     }
 }
 
+/* Runs before process_record_user, ahead of any layer / tap-hold logic.
+ * Used to bail out of light sleep as early as possible so the very
+ * first key press after wake reaches the host without a perceptible
+ * delay. Activity counters are reset here for the same reason. */
+bool pre_process_record_kb(uint16_t keycode, keyrecord_t *record) {
+    no_act_time     = 0;
+    rf_linking_time = 0;
+
+    if (f_wakeup_prepare) {
+        f_wakeup_prepare = 0;
+        if (user_config.sleep_enable) exit_light_sleep();
+    }
+    return pre_process_record_user(keycode, record);
+}
+
 /* qmk process record */
 bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
-    no_act_time = 0;
     if(!process_record_user(keycode, record)){
         return false;
     }
@@ -721,6 +735,9 @@ bool rgb_matrix_indicators_kb(void)
         num_led_show();
     }
     rgb_matrix_set_color(RGB_MATRIX_LED_COUNT-1, 0, 0, 0);
+    /* Auto-power the RGB / side LED drivers off when nothing is being
+     * drawn. Throttled internally to ~500ms. */
+    led_power_handle();
     return true;
 }
 
@@ -743,7 +760,9 @@ void housekeeping_task_kb(void) {
 
     uart_receive_pro();
 
-    uart_send_report_func();
+    /* Replaces the upstream uart_send_report_func: variable-rate
+     * retransmission + wake-queue drain (see rf.c). */
+    uart_send_report_repeat();
 
     dev_sts_sync();
 

@@ -19,7 +19,7 @@
     },
     "processor": "STM32F072",
     "bootloader": "stm32-dfu",
-    "debounce": 2,
+    "debounce": 3,
     "matrix_pins": {
         "cols": [
             "A4",
@@ -49,6 +49,7 @@
         "max_brightness": 255,
         "val_steps": 26,
         "speed_steps": 52,
+        "sleep": true,
         "animations": {
             "gradient_up_down": true,
             "gradient_left_right": true,
