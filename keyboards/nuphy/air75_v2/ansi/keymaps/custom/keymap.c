@@ -46,6 +46,7 @@
 #include QMK_KEYBOARD_H
 #include "layers.h"
 #include "macros.h"
+#include "ansi.h"
 
 const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
 
@@ -118,6 +119,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
      *
      *   Fn + F1   : KC_BRID   (brightness down)
      *   Fn + F2   : KC_BRIU   (brightness up)
+     *   Fn + F3   : G(KC_TAB) (Task View)
      *   Fn + F7   : KC_MPRV
      *   Fn + F8   : KC_MPLY
      *   Fn + F9   : KC_MNXT
@@ -129,11 +131,11 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
      *   Fn + 1..4 : LNK_BLE1..3 + LNK_RF
      *   Fn + Q..] : F13..F24
      *   Fn + B    : BAT_NUM
-     * F3..F6 left transparent (no good cross-platform equivalent of the
-     * Mac-specific MAC_TASK / SEARCH / VOICE / DND keys).
+     * F4..F6 left transparent (no good cross-platform equivalent of the
+     * Mac-specific MAC_SEARCH / VOICE / DND keys).
      * ==================================================================== */
     [WIN_FN_LAYER] = LAYOUT_ansi_84(
-        _______,    KC_BRID,    KC_BRIU,    _______,    _______,    _______,    _______,    KC_MPRV,    KC_MPLY,    KC_MNXT,    KC_MUTE,    KC_VOLD,    KC_VOLU,    _______,    _______,    MO(L_CFG),
+        _______,    KC_BRID,    KC_BRIU,    G(KC_TAB),  _______,    _______,    _______,    KC_MPRV,    KC_MPLY,    KC_MNXT,    KC_MUTE,    KC_VOLD,    KC_VOLU,    _______,    _______,    MO(L_CFG),
         _______,    LNK_BLE1,   LNK_BLE2,   LNK_BLE3,   LNK_RF,     _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,                VIM_LOCK,
         _______,    KC_F13,     KC_F14,     KC_F15,     KC_F16,     KC_F17,     KC_F18,     KC_F19,     KC_F20,     KC_F21,     KC_F22,     KC_F23,     KC_F24,     _______,                _______,
         _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,                            _______,
@@ -156,24 +158,28 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
     /* ====================================================================
      * Layer 5 - Config (RGB matrix + side LED + system)
      *
-     *   Q/A: RGB_MOD  / RGB_RMOD     (effect next / prev)
-     *   W/S: RGB_VAI  / RGB_VAD      (matrix brightness)
-     *   E/D: RGB_HUI  / RGB_HUD      (matrix hue)
-     *   R/F: RGB_SPI  / RGB_SPD      (matrix speed)
-     *   U/J: SIDE_MOD / SIDE_RMOD    (side mode next / prev)
-     *   I/K: SIDE_VAI / SIDE_VAD     (side brightness)
-     *   O/L: SIDE_HUI / SIDE_HUD     (side color next / prev)
-     *   P/;: SIDE_SPI / SIDE_SPD     (side speed)
-     *   B  : BAT_SHOW
-     *   N  : SLEEP_MODE
-     *   M  : DEV_RESET (factory reset, long press)
+     * Left (RGB matrix) - mod / hue / val / speed:
+     *   Q/A: RGB_MOD  / RGB_RMOD
+     *   W/D: RGB_HUI  / RGB_HUD
+     *   E/S: RGB_VAI  / RGB_VAD
+     *   R/F: RGB_SPI  / RGB_SPD
+     *   T  : RGB_TOG  (matrix power toggle)
+     *
+     * Right (side LED) - mod / hue / val / speed:
+     *   U/J: SIDE_MOD / SIDE_RMOD
+     *   O/L: SIDE_HUI / SIDE_HUD
+     *   I/K: SIDE_VAI / SIDE_VAD
+     *   P/;: SIDE_SPI / SIDE_SPD
+     *
+     * X/C: sleep timeout - / +
+     * Bottom row: Z=sleep mode cycle, B=BAT_SHOW, M=DEV_RESET
      * ==================================================================== */
     [CONFIG_LAYER] = LAYOUT_ansi_84(
         _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,
         _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,                _______,
-        _______,    RGB_MOD,    RGB_VAI,    RGB_HUI,    RGB_SPI,    _______,    _______,    SIDE_MOD,   SIDE_VAI,   SIDE_HUI,   SIDE_SPI,   _______,    _______,    _______,                _______,
-        _______,    RGB_RMOD,   RGB_VAD,    RGB_HUD,    RGB_SPD,    _______,    _______,    SIDE_RMOD,  SIDE_VAD,   SIDE_HUD,   SIDE_SPD,   _______,    _______,                            _______,
-        _______,                _______,    _______,    _______,    _______,    BAT_SHOW,   SLEEP_MODE, DEV_RESET,  _______,    _______,    _______,    _______,                _______,    _______,
+        _______,    RGB_MOD,    RGB_HUI,    RGB_VAI,    RGB_SPI,    RGB_TOG,    _______,    SIDE_MOD,   SIDE_HUI,   SIDE_VAI,   SIDE_SPI,   _______,    _______,    _______,                _______,
+        _______,    RGB_RMOD,   RGB_HUD,    RGB_VAD,    RGB_SPD,    _______,    _______,    SIDE_RMOD,  SIDE_HUD,   SIDE_VAD,   SIDE_SPD,   _______,    _______,                            _______,
+        _______,                SLEEP_MODE, CFG_SLEEP_TM_DN, CFG_SLEEP_TM_UP, _______,    BAT_SHOW,   _______,    DEV_RESET,  _______,    _______,    _______,    _______,                _______,    _______,
         _______,    _______,    _______,    _______,                                                                             _______,    _______,    _______,    _______,    _______,    _______
     ),
 

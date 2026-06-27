@@ -16,6 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "ansi.h"
+#include "config_ui.h"
 #include "usb_main.h"
 #include "rf_driver.h"
 #include "utils.h"
@@ -431,9 +432,12 @@ void londing_eeprom_data(void) {
         user_config.ee_side_speed           = side_speed;
         user_config.ee_side_rgb             = side_rgb;
         user_config.ee_side_colour          = side_colour;
-        user_config.sleep_enable            = true;
+        user_config.sleep_mode              = SLEEP_MODE_DEEP;
+        user_config.sleep_time_idx          = 6;
+        user_config.sleep_cfg_magic         = SLEEP_CFG_MAGIC;
         user_config_save();
     } else {
+        config_user_data_migrate();
         side_mode   = user_config.ee_side_mode;
         side_light  = user_config.ee_side_light;
         side_speed  = user_config.ee_side_speed;
@@ -452,7 +456,7 @@ bool pre_process_record_kb(uint16_t keycode, keyrecord_t *record) {
 
     if (f_wakeup_prepare) {
         f_wakeup_prepare = 0;
-        if (user_config.sleep_enable) exit_light_sleep();
+        if (config_sleep_mode() != SLEEP_MODE_OFF) exit_light_sleep();
     }
     return pre_process_record_user(keycode, record);
 }
@@ -687,15 +691,6 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
                 break_all_key();
             } else {
                 f_dev_reset_press = 0;
-            }
-            return false;
-
-        case SLEEP_MODE:
-            if (record->event.pressed) {
-                if(user_config.sleep_enable) user_config.sleep_enable = false;
-                else user_config.sleep_enable = true;
-                f_sleep_show       = 1;
-                user_config_save();
             }
             return false;
 

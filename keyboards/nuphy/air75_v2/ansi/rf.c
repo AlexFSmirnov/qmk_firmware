@@ -206,7 +206,9 @@ void rf_protocol_receive(void) {
         }
 
         case CMD_24G_SUSPEND: {
-            f_goto_sleep = 1;
+            if (!dev_wireless_usb_powered(&dev_info)) {
+                f_goto_sleep = 1;
+            }
             break;
         }
 

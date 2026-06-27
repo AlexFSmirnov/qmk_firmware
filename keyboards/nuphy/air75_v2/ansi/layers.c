@@ -110,45 +110,67 @@ static const key_color_t PROGMEM vim_nav_layer_keys[] = {
 };
 
 /* ---- Config layer (5) - RGB matrix + side LED + system ----
- * RGB matrix controls on the left half (Q-T / A-G), side LED controls on
- * the right half (U-P / J-;), system functions on the bottom (B/N/M).
+ * Left half: mod / hue / val / speed (cyan = hue, blue = val).
+ * Right half: same layout in magenta / pink.
+ * T = RGB matrix toggle, X/C = sleep timeout -/+, Z = sleep mode (dynamic color).
  */
-#define RGB_F_R 0x40        /* RGB forward (next) - bright cyan */
+#define RGB_F_R 0x40
 #define RGB_F_G 0xC0
 #define RGB_F_B 0xFF
-#define RGB_B_R 0x10        /* RGB backward (prev) - dim cyan */
+#define RGB_B_R 0x10
 #define RGB_B_G 0x40
 #define RGB_B_B 0x60
-#define SIDE_F_R 0xFF       /* side forward - bright magenta */
+#define RGB_VAL_F_R 0x20
+#define RGB_VAL_F_G 0x60
+#define RGB_VAL_F_B 0xFF
+#define RGB_VAL_B_R 0x08
+#define RGB_VAL_B_G 0x20
+#define RGB_VAL_B_B 0x80
+#define RGB_PWR_R 0xFF
+#define RGB_PWR_G 0xA0
+#define RGB_PWR_B 0x20
+#define SIDE_F_R 0xFF
 #define SIDE_F_G 0x40
 #define SIDE_F_B 0xC0
-#define SIDE_B_R 0x60       /* side backward - dim magenta */
+#define SIDE_B_R 0x60
 #define SIDE_B_G 0x10
 #define SIDE_B_B 0x40
+#define SIDE_VAL_F_R 0xFF
+#define SIDE_VAL_F_G 0x80
+#define SIDE_VAL_F_B 0xC0
+#define SIDE_VAL_B_R 0x80
+#define SIDE_VAL_B_G 0x20
+#define SIDE_VAL_B_B 0x60
+#define SLEEP_TM_R 0x00
+#define SLEEP_TM_G 0xFF
+#define SLEEP_TM_B 0x40
 
 static const key_color_t PROGMEM config_layer_keys[] = {
-    /* Row 2 (Q..) - forward direction */
-    {2, 1, RGB_F_R, RGB_F_G, RGB_F_B},    /* Q: RGB_MOD */
-    {2, 2, RGB_F_R, RGB_F_G, RGB_F_B},    /* W: RGB_VAI */
-    {2, 3, RGB_F_R, RGB_F_G, RGB_F_B},    /* E: RGB_HUI */
-    {2, 4, RGB_F_R, RGB_F_G, RGB_F_B},    /* R: RGB_SPI */
-    {2, 7, SIDE_F_R, SIDE_F_G, SIDE_F_B}, /* U: SIDE_MOD */
-    {2, 8, SIDE_F_R, SIDE_F_G, SIDE_F_B}, /* I: SIDE_VAI */
-    {2, 9, SIDE_F_R, SIDE_F_G, SIDE_F_B}, /* O: SIDE_HUI */
-    {2, 10, SIDE_F_R, SIDE_F_G, SIDE_F_B},/* P: SIDE_SPI */
-    /* Row 3 (A..) - backward direction */
-    {3, 1, RGB_B_R, RGB_B_G, RGB_B_B},    /* A: RGB_RMOD */
-    {3, 2, RGB_B_R, RGB_B_G, RGB_B_B},    /* S: RGB_VAD */
-    {3, 3, RGB_B_R, RGB_B_G, RGB_B_B},    /* D: RGB_HUD */
-    {3, 4, RGB_B_R, RGB_B_G, RGB_B_B},    /* F: RGB_SPD */
-    {3, 7, SIDE_B_R, SIDE_B_G, SIDE_B_B}, /* J: SIDE_RMOD */
-    {3, 8, SIDE_B_R, SIDE_B_G, SIDE_B_B}, /* K: SIDE_VAD */
-    {3, 9, SIDE_B_R, SIDE_B_G, SIDE_B_B}, /* L: SIDE_HUD */
-    {3, 10, SIDE_B_R, SIDE_B_G, SIDE_B_B},/* ;: SIDE_SPD */
-    /* System row (Shift row) - matrix col numbers (V=5, B=6, N=7, M=8) */
-    {4, 6, 0x00, 0xFF, 0x00}, /* B: BAT_SHOW   - green */
-    {4, 7, 0xFF, 0x80, 0x00}, /* N: SLEEP_MODE - orange */
-    {4, 8, 0xFF, 0x00, 0x00}, /* M: DEV_RESET  - red */
+    /* Sleep timeout -/ + (X/C on the shift row) */
+    {4, 3, SLEEP_TM_R, SLEEP_TM_G, SLEEP_TM_B}, /* X: shorter */
+    {4, 4, SLEEP_TM_R, SLEEP_TM_G, SLEEP_TM_B}, /* C: longer */
+    /* RGB matrix - mod / hue / val / speed / toggle */
+    {2, 1, RGB_F_R, RGB_F_G, RGB_F_B},          /* Q: RGB_MOD */
+    {2, 2, RGB_F_R, RGB_F_G, RGB_F_B},          /* W: RGB_HUI */
+    {2, 3, RGB_VAL_F_R, RGB_VAL_F_G, RGB_VAL_F_B}, /* E: RGB_VAI */
+    {2, 4, RGB_F_R, RGB_F_G, RGB_F_B},          /* R: RGB_SPI */
+    {2, 5, RGB_PWR_R, RGB_PWR_G, RGB_PWR_B},    /* T: RGB_TOG */
+    {3, 1, RGB_B_R, RGB_B_G, RGB_B_B},          /* A: RGB_RMOD */
+    {3, 2, RGB_B_R, RGB_B_G, RGB_B_B},          /* D: RGB_HUD */
+    {3, 3, RGB_VAL_B_R, RGB_VAL_B_G, RGB_VAL_B_B}, /* S: RGB_VAD */
+    {3, 4, RGB_B_R, RGB_B_G, RGB_B_B},          /* F: RGB_SPD */
+    /* Side LED - mod / hue / val / speed */
+    {2, 7, SIDE_F_R, SIDE_F_G, SIDE_F_B},       /* U: SIDE_MOD */
+    {2, 8, SIDE_VAL_F_R, SIDE_VAL_F_G, SIDE_VAL_F_B}, /* I: SIDE_VAI */
+    {2, 9, SIDE_F_R, SIDE_F_G, SIDE_F_B},       /* O: SIDE_HUI */
+    {2, 10, SIDE_F_R, SIDE_F_G, SIDE_F_B},      /* P: SIDE_SPI */
+    {3, 7, SIDE_B_R, SIDE_B_G, SIDE_B_B},       /* J: SIDE_RMOD */
+    {3, 8, SIDE_VAL_B_R, SIDE_VAL_B_G, SIDE_VAL_B_B}, /* K: SIDE_VAD */
+    {3, 9, SIDE_B_R, SIDE_B_G, SIDE_B_B},       /* L: SIDE_HUD */
+    {3, 10, SIDE_B_R, SIDE_B_G, SIDE_B_B},      /* ;: SIDE_SPD */
+    /* System row - Z sleep mode color is painted dynamically in config_ui.c */
+    {4, 6, 0x00, 0xFF, 0x00}, /* B: BAT_SHOW */
+    {4, 8, 0xFF, 0x00, 0x00}, /* M: DEV_RESET */
 };
 
 /* Layer overlays. Layers not listed have no overlay; layers 0 / 2 are

@@ -16,6 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 #include "ansi.h"
+#include "config_ui.h"
 #include "side_table.h"
 #include "utils.h"
 #include "mcu_pwr.h"
@@ -325,14 +326,22 @@ void sleep_sw_led_show(void) {
     }
 
     if (sleep_show_flag) {
-        if (user_config.sleep_enable) {
-            r_temp = 0x00;
-            g_temp = 0x80;
-            b_temp = 0x00;
-        } else {
-            r_temp = 0x80;
-            g_temp = 0x00;
-            b_temp = 0x00;
+        r_temp = 0x00;
+        g_temp = 0x00;
+        b_temp = 0x00;
+        switch (user_config.sleep_mode) {
+            case SLEEP_MODE_OFF:
+                r_temp = 0x80;
+                break;
+            case SLEEP_MODE_LIGHT:
+                r_temp = 0x80;
+                g_temp = 0x40;
+                break;
+            case SLEEP_MODE_DEEP:
+                g_temp = 0x80;
+                break;
+            default:
+                break;
         }
         if ((timer_elapsed32(sleep_show_timer) / 500) % 2 == 0) {
             set_right_rgb(r_temp, g_temp, b_temp);
@@ -816,7 +825,9 @@ void device_reset_init(void) {
     user_config.ee_side_speed           = side_speed;
     user_config.ee_side_rgb             = side_rgb;
     user_config.ee_side_colour          = side_colour;
-    user_config.sleep_enable            = true;
+    user_config.sleep_mode              = SLEEP_MODE_DEEP;
+    user_config.sleep_time_idx          = 6;
+    user_config.sleep_cfg_magic         = SLEEP_CFG_MAGIC;
     user_config_save();
 }
 

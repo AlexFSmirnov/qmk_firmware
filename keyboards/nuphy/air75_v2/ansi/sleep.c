@@ -22,12 +22,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *  - Calls mcu_pwr.c's enter_deep_sleep() to push the STM32F072 into
  *    PWR_STOPMode + EXTI wake; idle current drops from milliamps to
  *    microamps, fixing the "battery dies overnight" bug.
- *  - In USB or wireless-with-charger-attached mode we only do a light
- *    sleep (LEDs off, MCU stays awake) - deep sleep on USB power has
- *    been observed to crash on wake, and chargers interrupt the MCU
- *    repeatedly which negates the savings.
- *  - The pre-existing user_config.sleep_enable boolean still gates all
- *    sleep behaviour; no extra UI / keycode is needed.
+ *  - In USB link mode we only do light sleep (LEDs off, MCU stays awake).
+ *  - USB connected while in RF/BT mode skips sleep entirely: any sleep
+ *    path sends CMD_SLEEP to the NRF, which clears rf_charge and would
+ *    otherwise fall through to deep sleep on the next idle tick.
+ *  - user_config.sleep_mode selects off / light / deep sleep.
  *
  * `f_wakeup_prepare` is now cleared eagerly in `pre_process_record_kb`
  * (see ansi.c) so the very first key after wake-up is delivered with
@@ -35,6 +34,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 #include "ansi.h"
+#include "config_ui.h"
 #include "hal_usb.h"
 #include "usb_main.h"
 #include "mcu_pwr.h"
@@ -72,13 +72,22 @@ static void deep_sleep_handle(void) {
 }
 
 void sleep_handle(void) {
-    static uint32_t delay_step_timer     = 0;
-    static uint8_t  usb_suspend_debounce = 0;
-    static uint32_t rf_disconnect_time   = 0;
+    static uint32_t delay_step_timer        = 0;
+    static uint8_t  usb_suspend_debounce    = 0;
+    static uint32_t rf_disconnect_time      = 0;
+    static bool     wireless_usb_was_powered = false;
 
     /* 50ms interval */
     if (timer_elapsed32(delay_step_timer) < 50) return;
     delay_step_timer = timer_read32();
+
+    const bool wireless_usb = dev_wireless_usb_powered(&dev_info);
+    if (wireless_usb_was_powered && !wireless_usb) {
+        no_act_time        = 0;
+        rf_disconnect_time = 0;
+        rf_linking_time    = 0;
+    }
+    wireless_usb_was_powered = wireless_usb;
 
     /* sleep process */
     if (f_goto_sleep) {
@@ -87,25 +96,27 @@ void sleep_handle(void) {
         rf_linking_time      = 0;
         usb_suspend_debounce = 0;
 
-        if (!user_config.sleep_enable) {
-            /* Sleep disabled by the user - never enter any sleep mode. */
+        if (config_sleep_mode() == SLEEP_MODE_OFF) {
             return;
         }
 
-        /* Avoid deep sleep while charging wirelessly: chargers
-         * periodically wake the MCU which causes a sleep-wake churn.
-         * Take a light sleep instead so the user can still see LED
-         * activity. */
-        if (dev_info.link_mode < LINK_USB && (dev_info.rf_charge & 0x01)) {
-            enter_light_sleep();
+        /* USB connected while in RF/BT mode - stay awake. Light/deep
+         * sleep both talk to the NRF and clear rf_charge, which would
+         * trip deep sleep on the next idle timeout. */
+        if (dev_wireless_usb_powered(&dev_info)) {
+            return;
         }
-        /* Avoid deep sleep while plugged in over USB - some hosts /
+        /* Avoid deep sleep while in USB link mode - some hosts /
          * USB-C chargers report power loss on wake which crashes the
          * board. The user is presumably tethered anyway. */
         else if (dev_info.link_mode == LINK_USB) {
             enter_light_sleep();
-        } else {
+        } else if (config_sleep_mode() == SLEEP_MODE_DEEP) {
             deep_sleep_handle();
+            return;
+        } else if (config_sleep_mode() == SLEEP_MODE_LIGHT) {
+            enter_light_sleep();
+        } else {
             return;
         }
 
@@ -124,7 +135,9 @@ void sleep_handle(void) {
         } else {
             usb_suspend_debounce = 0;
         }
-    } else if (no_act_time >= SLEEP_TIME_DELAY) {
+    } else if (wireless_usb) {
+        rf_disconnect_time = 0;
+    } else if (no_act_time >= config_sleep_time_delay()) {
         f_goto_sleep = 1;
     } else if (rf_linking_time >= LINK_TIMEOUT) {
         f_goto_sleep = 1;

@@ -52,6 +52,9 @@ enum custom_keycodes {
     VIM_TOGGLE,
     VIM_LOCK,
 
+    CFG_SLEEP_TM_UP,
+    CFG_SLEEP_TM_DN,
+
     SIDE_RMOD,
     SIDE_HUD,
 };
@@ -173,6 +176,11 @@ typedef struct
     uint8_t sys_sw_state;
 } DEV_INFO_STRUCT;
 
+/* USB cable attached while using RF/BT (not LINK_USB mode). */
+static inline bool dev_wireless_usb_powered(const DEV_INFO_STRUCT *dev) {
+    return dev->link_mode < LINK_USB && (dev->rf_charge & 0x01);
+}
+
 typedef struct
 {
     uint8_t default_brightness_flag;
@@ -181,9 +189,9 @@ typedef struct
     uint8_t ee_side_speed;
     uint8_t ee_side_rgb;
     uint8_t ee_side_colour;
-    uint8_t sleep_enable;
-    uint8_t retain1;
-    uint8_t retain2;
+    uint8_t sleep_mode;      /* SLEEP_MODE_OFF / LIGHT / DEEP */
+    uint8_t sleep_time_idx;  /* index into sleep_time_presets[] */
+    uint8_t sleep_cfg_magic; /* SLEEP_CFG_MAGIC when layout is current */
 } user_config_t;
 
 /* ---- ports for jincao1 fork's RF retransmission / wake-queue path ----
