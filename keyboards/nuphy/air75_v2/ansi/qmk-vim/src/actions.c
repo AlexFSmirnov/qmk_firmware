@@ -82,12 +82,19 @@ static bool process_vim_action(uint16_t keycode, const keyrecord_t *record) {
 }
 
 #ifdef VIM_I_TEXT_OBJECTS
+static void select_inner_word(void) {
+    /* End of word, back to start, then select forward — covers cursor in,
+     * at start of, or at end of the word under most Ctrl+arrow editors. */
+    tap_code16(VIM_W);
+    tap_code16(VIM_B);
+    tap_code16(LSFT(VIM_E));
+}
+
 static bool process_in_object(uint16_t keycode, const keyrecord_t *record) {
     if (record->event.pressed) {
         switch (keycode) {
             case KC_W:
-                tap_code16(VIM_W);
-                tap_code16(LSFT(VIM_B));
+                select_inner_word();
                 action_func();
                 return false;
             case KC_G:
@@ -271,11 +278,16 @@ static uint8_t repeat_buf_idx = 0;
 // if this gets much bigger you would probably want it in progmem
 static uint16_t repeat_buf[VIM_REPEAT_BUF_SIZE];
 
+__attribute__((weak))
+void vim_repeat_action_recorded(void) {
+}
+
 void start_recording_repeat(void) {
     // if the state isn't recording or executing
     if (repeat_state <= VALID_REPEAT) {
         repeat_state = RECORDING_REPEAT;
         repeat_buf_idx = 0;
+        vim_repeat_action_recorded();
     }
 }
 

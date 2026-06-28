@@ -52,9 +52,29 @@ void enable_vim_mode(void) {
     vim_enabled = true;
     normal_mode();
 }
+__attribute__((weak))
+bool vim_macro_is_playing(void) {
+    return false;
+}
+
+__attribute__((weak))
+bool vim_macro_is_recording(void) {
+    return false;
+}
+
+__attribute__((weak))
+bool vim_macro_is_injecting(void) {
+    return false;
+}
+
+__attribute__((weak))
+void disable_vim_mode_user(void) {
+}
+
 // Disable vim mode
 void disable_vim_mode(void) {
     vim_enabled = false;
+    disable_vim_mode_user();
 }
 // Toggle vim mode
 void toggle_vim_mode(void) {
@@ -127,7 +147,7 @@ bool process_vim_mode(uint16_t keycode, const keyrecord_t *record) {
         bool do_process_key = process_func(keycode, record);
 
 #ifdef VIM_DOT_REPEAT
-        if (record->event.pressed) {
+        if (record->event.pressed && !vim_macro_is_playing() && !vim_macro_is_recording()) {
             add_repeat_keycode(keycode);
         }
 #endif

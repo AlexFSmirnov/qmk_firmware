@@ -4,6 +4,7 @@
 #include "utils.h"
 #include "layers.h"
 #include "macros.h"
+#include "vim_macros.h"
 #include "rgb_matrix.h"
 #include "config_ui.h"
 #include "qmk-vim/src/vim.h"
@@ -153,6 +154,13 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         return false;
     }
 
+    if (vim_mode_enabled() && vim_macro_is_playing() && !vim_macro_is_injecting()) {
+        if (record->event.pressed && keycode == KC_ESC) {
+            vim_macro_stop_playback();
+        }
+        return false;
+    }
+
     if (rgb_hue_repeat_process(keycode, record)) {
         return false;
     }
@@ -171,8 +179,12 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         return false;
     }
 
-    if (!process_vim_mode(keycode, record)) {
-        return false;
+    if (vim_mode_enabled()) {
+        bool pass = process_vim_mode(keycode, record);
+        vim_macro_capture_record(keycode, record);
+        if (!pass) {
+            return false;
+        }
     }
 
     switch (keycode) {
@@ -224,6 +236,10 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     return true;
 }
 
+bool process_normal_mode_user(uint16_t keycode, keyrecord_t *record) {
+    return vim_macro_process_normal(keycode, record);
+}
+
 bool process_insert_mode_user(uint16_t keycode, keyrecord_t *record) {
     if (record->event.pressed) {
         if (keycode == KC_J) {
@@ -250,6 +266,7 @@ bool process_insert_mode_user(uint16_t keycode, keyrecord_t *record) {
 
 void housekeeping_task_user(void) {
     macro_task();
+    vim_macro_task();
     rgb_hue_repeat_task();
 }
 
@@ -295,8 +312,11 @@ static void side_led_vim_mode(void) {
 }
 
 bool side_led_show_user(void) {
-    /* Priority order: macro recording/playback > vim > layer overlay > stock animation */
+    /* Priority: F7-F12 macro recording > vim macro recording > vim mode > layer overlay */
     if (macro_render_sides()) {
+        return false;
+    }
+    if (vim_macro_render_sides()) {
         return false;
     }
     if (vim_mode_enabled()) {

@@ -8,6 +8,7 @@ extern process_func_t process_func;
 
 // forward declare from vim.h
 void disable_vim_mode(void);
+bool vim_macro_is_injecting(void);
 
 vim_mode_t vim_current_mode;
 vim_mode_t get_vim_mode(void) {
@@ -225,7 +226,7 @@ bool process_normal_mode(uint16_t keycode, const keyrecord_t *record) {
                 break;
         }
 #ifdef VIM_DOT_REPEAT
-        if (should_record_action) {
+        if (should_record_action && !vim_macro_is_injecting()) {
             start_recording_repeat();
         }
 #endif

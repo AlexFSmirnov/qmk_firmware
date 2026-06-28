@@ -76,16 +76,9 @@ bool process_motions(uint16_t keycode, const keyrecord_t *record, uint16_t qk_mo
             break;
         case KC_W:
         case LSFT(KC_W):
-#ifdef VIM_W_BEGINNING_OF_WORD
             set_visual_direction(V_FORWARD);
             register_motion(qk_mods | VIM_W, record);
-            if (!record->event.pressed) {
-                /* unregister_code16(qk_mods | VIM_W); */
-                tap_code16(qk_mods | VIM_W);
-                tap_code16(qk_mods | VIM_B);
-            }
             break;
-#endif
         case KC_E:
         case LSFT(KC_E):
             set_visual_direction(V_FORWARD);
