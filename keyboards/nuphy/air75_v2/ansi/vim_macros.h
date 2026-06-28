@@ -9,8 +9,8 @@
 /* Normal-mode hook (q / @). Return false to consume the key. */
 bool vim_macro_process_normal(uint16_t keycode, const keyrecord_t *record);
 
-/* Capture a key event while macro recording (call after process_vim_mode). */
-void vim_macro_capture_record(uint16_t keycode, const keyrecord_t *record);
+/* Capture a vim-processed key (merged mods) while macro recording. */
+void vim_macro_capture_vim_key(uint16_t keycode, const keyrecord_t *record, bool passed_through);
 
 /* Called when vim mode is disabled; clears all register data. */
 void vim_macro_on_vim_disable(void);

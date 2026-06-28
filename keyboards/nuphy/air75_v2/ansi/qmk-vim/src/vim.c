@@ -71,6 +71,21 @@ __attribute__((weak))
 void disable_vim_mode_user(void) {
 }
 
+__attribute__((weak))
+void vim_macro_capture_vim_key(uint16_t keycode, const keyrecord_t *record, bool passed_through) {
+    (void)keycode;
+    (void)record;
+    (void)passed_through;
+}
+
+static uint16_t vim_keycode_with_mods(uint16_t keycode) {
+    const uint8_t all_mods = get_mods() | get_oneshot_mods();
+    if (!all_mods) {
+        return keycode;
+    }
+    return all_mods & 0xF0 ? keycode | (all_mods << 4) : keycode | (all_mods << 8);
+}
+
 // Disable vim mode
 void disable_vim_mode(void) {
     vim_enabled = false;
@@ -128,6 +143,9 @@ bool process_vim_mode(uint16_t keycode, const keyrecord_t *record) {
 
         // let through anything above normal keyboard keycode or a mod
         if ((keycode < KC_A || keycode > KC_CAPS_LOCK) && (keycode < QK_MODS || keycode > QK_MODS_MAX)) {
+            if (record->event.pressed && vim_macro_is_recording()) {
+                vim_macro_capture_vim_key(vim_keycode_with_mods(keycode), record, true);
+            }
             return true;
         }
 
@@ -145,6 +163,10 @@ bool process_vim_mode(uint16_t keycode, const keyrecord_t *record) {
 
         // process the current keycode
         bool do_process_key = process_func(keycode, record);
+
+        if (record->event.pressed && vim_macro_is_recording()) {
+            vim_macro_capture_vim_key(keycode, record, do_process_key);
+        }
 
 #ifdef VIM_DOT_REPEAT
         if (record->event.pressed && !vim_macro_is_playing() && !vim_macro_is_recording()) {

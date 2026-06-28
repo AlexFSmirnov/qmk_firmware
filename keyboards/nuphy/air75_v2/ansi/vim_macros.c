@@ -8,6 +8,8 @@
 #include "vim_macros.h"
 #include "utils.h"
 #include "macros.h"
+#include "rgb_matrix.h"
+#include "action.h"
 #include "qmk-vim/src/vim.h"
 #include "qmk-vim/src/modes.h"
 #include "qmk-vim/src/numbered_actions.h"
@@ -140,6 +142,9 @@ void vim_repeat_action_recorded(void) {
 }
 
 void vim_macro_stop_playback(void) {
+    if (playback.active) {
+        clear_keyboard();
+    }
     playback.active = false;
 }
 
@@ -248,7 +253,9 @@ bool vim_macro_process_normal(uint16_t keycode, const keyrecord_t *record) {
     return true;
 }
 
-void vim_macro_capture_record(uint16_t keycode, const keyrecord_t *record) {
+void vim_macro_capture_vim_key(uint16_t keycode, const keyrecord_t *record, bool passed_through) {
+    (void)passed_through;
+
     if (state != VIM_MACRO_RECORDING || playback.active) {
         return;
     }
@@ -296,6 +303,7 @@ void vim_macro_task(void) {
         }
         macro_dot_ready = true;
         macro_dot_reg   = playback.reg;
+        clear_keyboard();
         playback.active = false;
         return;
     }
@@ -308,13 +316,18 @@ void vim_macro_task(void) {
 
     playback.injecting = true;
     bool pass          = process_vim_mode(ev->keycode, &playback.playback_record);
-    playback.injecting = false;
-
-    if (pass) {
+    if (!pass) {
+        /* Motions (j/k/h/l, etc.) register on press and unregister on release.
+         * Recording only stores presses, so replay the release too. */
+        wait_ms(TAP_CODE_DELAY);
+        playback.playback_record.event.pressed = false;
+        process_vim_mode(ev->keycode, &playback.playback_record);
+    } else {
         register_code16(ev->keycode);
         wait_ms(TAP_CODE_DELAY);
         unregister_code16(ev->keycode);
     }
+    playback.injecting = false;
 
     rgb_matrix_handle_key_event(ev->row, ev->col, true);
     rgb_matrix_handle_key_event(ev->row, ev->col, false);
@@ -328,7 +341,27 @@ bool vim_macro_render_sides(void) {
         return false;
     }
 
-    uint8_t on = blink_on(500) ? 0xFF : 0x00;
+    uint8_t hue = 140;
+    switch (get_vim_mode()) {
+        case NORMAL_MODE:
+            hue = 140;
+            break;
+        case INSERT_MODE:
+            hue = 90;
+            break;
+        case VISUAL_MODE:
+        case VISUAL_LINE_MODE:
+            hue = 35;
+            break;
+        default:
+            break;
+    }
+
+    HSV     hsv = rgb_matrix_get_hsv();
+    RGB     rgb = hsv_to_rgb((HSV){hue, hsv.s, 0xFF});
+    uint8_t on  = blink_on(500) ? 0xFF : 0x00;
+
+    set_side_l_rgb_side(rgb.r, rgb.g, rgb.b);
     set_side_r_rgb_side(on, on, 0x00);
     return true;
 }

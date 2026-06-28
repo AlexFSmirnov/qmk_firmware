@@ -181,7 +181,6 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
 
     if (vim_mode_enabled()) {
         bool pass = process_vim_mode(keycode, record);
-        vim_macro_capture_record(keycode, record);
         if (!pass) {
             return false;
         }
