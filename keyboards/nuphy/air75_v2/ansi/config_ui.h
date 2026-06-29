@@ -6,7 +6,7 @@
 #define SLEEP_MODE_LIGHT 1
 #define SLEEP_MODE_DEEP  2
 
-#define SLEEP_CFG_MAGIC  0xA6
+#define SLEEP_CFG_MAGIC  0xA7
 
 /* Migrate legacy sleep_enable layout and apply defaults. */
 void config_user_data_migrate(void);

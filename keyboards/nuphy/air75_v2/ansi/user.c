@@ -7,6 +7,7 @@
 #include "vim_macros.h"
 #include "rgb_matrix.h"
 #include "config_ui.h"
+#include "caps_config.h"
 #include "qmk-vim/src/vim.h"
 #include "qmk-vim/src/modes.h"
 
@@ -169,6 +170,10 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         return false;
     }
 
+    if (!caps_config_process_record(keycode, record)) {
+        return false;
+    }
+
     if (vim_nav_lalt_swallow(keycode, record)) {
         return false;
     }
@@ -284,6 +289,7 @@ static void rgb_matrix_vim_mode(void) {
 bool rgb_matrix_indicators_user(void) {
     layer_overlay_render_keys();
     config_render_indicators();
+    caps_config_render_indicators();
     rgb_matrix_vim_mode();
     return true;
 }

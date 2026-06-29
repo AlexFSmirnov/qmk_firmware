@@ -55,6 +55,8 @@ enum custom_keycodes {
     CFG_SLEEP_TM_UP,
     CFG_SLEEP_TM_DN,
 
+    CAPS_ROLE,
+
     SIDE_RMOD,
     SIDE_HUD,
 };
@@ -192,6 +194,7 @@ typedef struct
     uint8_t sleep_mode;      /* SLEEP_MODE_OFF / LIGHT / DEEP */
     uint8_t sleep_time_idx;  /* index into sleep_time_presets[] */
     uint8_t sleep_cfg_magic; /* SLEEP_CFG_MAGIC when layout is current */
+    uint8_t caps_nav_default; /* 1 = vim nav on base (default), 0 = caps lock on base */
 } user_config_t;
 
 /* ---- ports for jincao1 fork's RF retransmission / wake-queue path ----

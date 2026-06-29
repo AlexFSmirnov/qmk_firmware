@@ -828,6 +828,7 @@ void device_reset_init(void) {
     user_config.sleep_mode              = SLEEP_MODE_DEEP;
     user_config.sleep_time_idx          = 6;
     user_config.sleep_cfg_magic         = SLEEP_CFG_MAGIC;
+    user_config.caps_nav_default        = 1;
     user_config_save();
 }
 

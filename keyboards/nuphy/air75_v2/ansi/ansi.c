@@ -433,9 +433,10 @@ void londing_eeprom_data(void) {
         user_config.ee_side_rgb             = side_rgb;
         user_config.ee_side_colour          = side_colour;
         user_config.sleep_mode              = SLEEP_MODE_DEEP;
-        user_config.sleep_time_idx          = 6;
-        user_config.sleep_cfg_magic         = SLEEP_CFG_MAGIC;
-        user_config_save();
+    user_config.sleep_time_idx          = 6;
+    user_config.sleep_cfg_magic         = SLEEP_CFG_MAGIC;
+    user_config.caps_nav_default        = 1;
+    user_config_save();
     } else {
         config_user_data_migrate();
         side_mode   = user_config.ee_side_mode;

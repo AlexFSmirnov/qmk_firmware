@@ -25,7 +25,8 @@
  * unused in this keymap.
  *
  * Notable bindings (apply to both Mac and Win):
- *   - Caps Lock        -> MO(L_VIM)   (hjkl arrows held layer)
+ *   - Caps Lock        -> CAPS_ROLE   (vim nav on base by default; Caps Lock on Fn;
+ *                         swap in config layer - Fn+Del, then tap Caps Lock)
  *   - Right Alt        -> MO(L_VIM)   (same, for right hand)
  *   - Right Ctrl       -> MO(L_MCR)   (macro layer)
  *   - Right column     -> VIM_TOGGLE / F13 / F14 / F15 (was PgUp/PgDn/Home/End;
@@ -57,7 +58,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         KC_ESC,     KC_F1,      KC_F2,      KC_F3,      KC_F4,      KC_F5,      KC_F6,      KC_F7,      KC_F8,      KC_F9,      KC_F10,     KC_F11,     KC_F12,     KC_HOME,    KC_END,     KC_DEL,
         KC_GRV,     KC_1,       KC_2,       KC_3,       KC_4,       KC_5,       KC_6,       KC_7,       KC_8,       KC_9,       KC_0,       KC_MINS,    KC_EQL,     KC_BSPC,                VIM_TOGGLE,
         KC_TAB,     KC_Q,       KC_W,       KC_E,       KC_R,       KC_T,       KC_Y,       KC_U,       KC_I,       KC_O,       KC_P,       KC_LBRC,    KC_RBRC,    KC_BSLS,                KC_F13,
-        MO(L_VIM),  KC_A,       KC_S,       KC_D,       KC_F,       KC_G,       KC_H,       KC_J,       KC_K,       KC_L,       KC_SCLN,    KC_QUOT,    KC_ENT,                             KC_F14,
+        CAPS_ROLE,  KC_A,       KC_S,       KC_D,       KC_F,       KC_G,       KC_H,       KC_J,       KC_K,       KC_L,       KC_SCLN,    KC_QUOT,    KC_ENT,                             KC_F14,
         KC_LSFT,                KC_Z,       KC_X,       KC_C,       KC_V,       KC_B,       KC_N,       KC_M,       KC_COMM,    KC_DOT,     KC_SLSH,    KC_RSFT,                KC_UP,      KC_F15,
         KC_LCTL,    KC_LALT,    KC_LGUI,    KC_SPC,                                                                              MO(L_VIM),  MO(L_MFN),  MO(L_MCR),  KC_LEFT,    KC_DOWN,    KC_RGHT
     ),
@@ -105,7 +106,7 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
         KC_ESC,     KC_F1,      KC_F2,      KC_F3,      KC_F4,      KC_F5,      KC_F6,      KC_F7,      KC_F8,      KC_F9,      KC_F10,     KC_F11,     KC_F12,     KC_HOME,    KC_END,     KC_DEL,
         KC_GRV,     KC_1,       KC_2,       KC_3,       KC_4,       KC_5,       KC_6,       KC_7,       KC_8,       KC_9,       KC_0,       KC_MINS,    KC_EQL,     KC_BSPC,                VIM_TOGGLE,
         KC_TAB,     KC_Q,       KC_W,       KC_E,       KC_R,       KC_T,       KC_Y,       KC_U,       KC_I,       KC_O,       KC_P,       KC_LBRC,    KC_RBRC,    KC_BSLS,                KC_F13,
-        MO(L_VIM),  KC_A,       KC_S,       KC_D,       KC_F,       KC_G,       KC_H,       KC_J,       KC_K,       KC_L,       KC_SCLN,    KC_QUOT,    KC_ENT,                             KC_F14,
+        CAPS_ROLE,  KC_A,       KC_S,       KC_D,       KC_F,       KC_G,       KC_H,       KC_J,       KC_K,       KC_L,       KC_SCLN,    KC_QUOT,    KC_ENT,                             KC_F14,
         KC_LSFT,                KC_Z,       KC_X,       KC_C,       KC_V,       KC_B,       KC_N,       KC_M,       KC_COMM,    KC_DOT,     KC_SLSH,    KC_RSFT,                KC_UP,      KC_F15,
         KC_LCTL,    KC_LGUI,    KC_LALT,    KC_SPC,                                                                              MO(L_VIM),  MO(L_WFN),  MO(L_MCR),  KC_LEFT,    KC_DOWN,    KC_RGHT
     ),
@@ -172,13 +173,14 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
      *   P/;: SIDE_SPI / SIDE_SPD
      *
      * X/C: sleep timeout - / +
+     * Caps Lock: swap caps lock / vim nav roles (cyan = vim nav default, green = caps default)
      * Bottom row: Z=sleep mode cycle, B=BAT_SHOW, M=DEV_RESET
      * ==================================================================== */
     [CONFIG_LAYER] = LAYOUT_ansi_84(
         _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,
         _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,    _______,                _______,
         _______,    RGB_MOD,    RGB_HUI,    RGB_VAI,    RGB_SPI,    RGB_TOG,    _______,    SIDE_MOD,   SIDE_HUI,   SIDE_VAI,   SIDE_SPI,   _______,    _______,    _______,                _______,
-        _______,    RGB_RMOD,   RGB_HUD,    RGB_VAD,    RGB_SPD,    _______,    _______,    SIDE_RMOD,  SIDE_HUD,   SIDE_VAD,   SIDE_SPD,   _______,    _______,                            _______,
+        CAPS_ROLE,  RGB_RMOD,   RGB_HUD,    RGB_VAD,    RGB_SPD,    _______,    _______,    SIDE_RMOD,  SIDE_HUD,   SIDE_VAD,   SIDE_SPD,   _______,    _______,                            _______,
         _______,                SLEEP_MODE, CFG_SLEEP_TM_DN, CFG_SLEEP_TM_UP, _______,    BAT_SHOW,   _______,    DEV_RESET,  _______,    _______,    _______,    _______,                _______,    _______,
         _______,    _______,    _______,    _______,                                                                             _______,    _______,    _______,    _______,    _______,    _______
     ),

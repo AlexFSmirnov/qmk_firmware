@@ -43,10 +43,19 @@ static uint8_t clamp_sleep_time_idx(uint8_t idx) {
 }
 
 void config_user_data_migrate(void) {
+    if (user_config.sleep_cfg_magic == 0xA6) {
+        user_config.caps_nav_default = 1;
+        user_config.sleep_cfg_magic  = SLEEP_CFG_MAGIC;
+        user_config_save();
+    }
+
     if (user_config.sleep_cfg_magic == SLEEP_CFG_MAGIC) {
         user_config.sleep_time_idx = clamp_sleep_time_idx(user_config.sleep_time_idx);
         if (user_config.sleep_mode > SLEEP_MODE_DEEP) {
             user_config.sleep_mode = SLEEP_MODE_DEEP;
+        }
+        if (user_config.caps_nav_default > 1) {
+            user_config.caps_nav_default = 1;
         }
         return;
     }
@@ -55,6 +64,7 @@ void config_user_data_migrate(void) {
     user_config.sleep_mode = user_config.sleep_mode ? SLEEP_MODE_DEEP : SLEEP_MODE_OFF;
     user_config.sleep_time_idx = SLEEP_TIME_DEFAULT_IDX;
     user_config.sleep_cfg_magic = SLEEP_CFG_MAGIC;
+    user_config.caps_nav_default = 1;
     user_config_save();
 }
 
